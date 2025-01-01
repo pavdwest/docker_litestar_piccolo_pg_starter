@@ -37,6 +37,7 @@ TODO
 5. Add .env file and populate with your secrets:
 
     ```cd ../../..```
+
     ```cp ./.env.example ./.env```
 
 
