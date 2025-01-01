@@ -1,0 +1,31 @@
+[project]
+name = "app"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "loguru>=0.7.3",
+    "uvicorn>=0.34.0",
+    "litestar-granian>=0.8.0",
+    "piccolo[postgres]>=1.22.0",
+    "inflection>=0.5.1",
+    "litestar>=2.13.0",
+    "pytest>=8.3.4",
+    "sqlalchemy-utils>=0.41.2",
+    "psycopg2-binary>=2.9.10",
+    "pytest-asyncio>=0.25.0",
+]
+
+[dependency-groups]
+dev = [
+    "polyfactory>=2.18.1",
+]
+
+[tool.pytest.ini_options]
+cache_dir = "./pytest_cache"
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+
+[tool.ruff]
+cache-dir = "./.ignore/ruff"
