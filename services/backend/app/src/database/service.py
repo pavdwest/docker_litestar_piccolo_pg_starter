@@ -1,6 +1,14 @@
+
+from src.logging.service import logger
+
+
+logger.warning('BEFORE PICCOLO IMPORT')
+from piccolo.engine.postgres import PostgresEngine
+logger.warning('AFTER PICCOLO IMPORT')
+
+
 import time
 
-from piccolo.engine.postgres import PostgresEngine
 from sqlalchemy_utils import database_exists, create_database
 
 from src.logging.service import logger
