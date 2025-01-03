@@ -13,6 +13,14 @@ class NotFoundException(AppException):
         raise HTTPException(str(self), status_code=status_codes.HTTP_404_NOT_FOUND)
 
 
+class UniquenessException(AppException):
+    def http_exception(self):
+        raise HTTPException(
+                status_code=status_codes.HTTP_409_CONFLICT,
+                detail=str(self),
+        )
+
+
 class TenantNotProvidedForTenantQuery(AppException):
     def __init__(self):
         super().__init__("Tenant not provided for tenant query.")

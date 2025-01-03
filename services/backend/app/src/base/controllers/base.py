@@ -16,7 +16,7 @@ from src.base.dtos import (
     AppDeleteAllDTO,
     AppDeleteAllResponseDTO,
 )
-from src.base.models.exceptions import NotFoundException
+from src.base.models.exceptions import NotFoundException, UniquenessException
 
 
 class AppController(Controller):
@@ -60,11 +60,8 @@ def generate_crud_controller(
     ) -> ReadDTO:          # type: ignore
         try:
             return await Model.create_one(data)
-        except UniqueViolationError as e:
-            raise HTTPException(
-                status_code=status_codes.HTTP_409_CONFLICT,
-                detail=str(e),
-            )
+        except UniquenessException as e:
+            raise e.http_exception()
     setattr(controller_class, 'create_one', create_one)
 
 
@@ -158,11 +155,8 @@ def generate_crud_controller(
     ) -> AppBulkActionResultDTO:
         try:
             return await Model.create_many(data)
-        except UniqueViolationError as e:
-            raise HTTPException(
-                status_code=status_codes.HTTP_409_CONFLICT,
-                detail=str(e),
-            )
+        except UniquenessException as e:
+            raise e.http_exception()
     setattr(controller_class, 'create_many', create_many)
 
 

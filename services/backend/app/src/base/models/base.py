@@ -20,7 +20,8 @@ from src.base.dtos import (
     AppBulkActionResultDTO,
     AppDeleteAllResponseDTO,
 )
-from src.base.models.exceptions import NotFoundException
+from asyncpg.exceptions import UniqueViolationError
+from src.base.models.exceptions import NotFoundException, UniquenessException
 
 
 class OnConflictAction(StrEnum):
@@ -87,10 +88,13 @@ class AppModel(
 
     @classmethod
     async def create_one(cls, dto: CreateDTOClassType) -> ReadDTOClassType:
-        item = cls(**dto.model_dump())
-        await item.save().run()
-        await item.refresh()
-        return cls.ReadDTOClass.model_construct(**item.to_dict())
+        try:
+            item = cls(**dto.model_dump())
+            await item.save().run()
+            await item.refresh()
+            return cls.ReadDTOClass.model_construct(**item.to_dict())
+        except UniqueViolationError as e:
+            raise UniquenessException(str(e))
 
     @classmethod
     async def read_one(cls, id: int) -> ReadDTOClassType:
@@ -196,21 +200,24 @@ class AppModel(
         batch_number = 1
 
         start = time.monotonic()
-        for i in range(0, len(dtos), batch_size):
-            batch_items = dtos[i:i+batch_size]
-            q = cls.insert(
-                *[cls(**i.model_dump()) for i in batch_items]
-            ).run()
-            batch_res.append(await q)
-            logger.info(f"Batch {batch_number} size {len(batch_items)}: items idx={i} to idx={i+len(batch_items)-1} inserted.")
-            batch_number += 1
-        logger.info(f"Time taken: {time.monotonic() - start} seconds.")
+        try:
+            for i in range(0, len(dtos), batch_size):
+                batch_items = dtos[i:i+batch_size]
+                q = cls.insert(
+                    *[cls(**i.model_dump()) for i in batch_items]
+                ).run()
+                batch_res.append(await q)
+                logger.info(f"Batch {batch_number} size {len(batch_items)}: items idx={i} to idx={i+len(batch_items)-1} inserted.")
+                batch_number += 1
+            logger.info(f"Time taken: {time.monotonic() - start} seconds.")
 
-        return AppBulkActionResultDTO.model_construct(
-            ids=[
-                r['id'] for r in [r for batch in batch_res for r in batch]
-            ]
-        )
+            return AppBulkActionResultDTO.model_construct(
+                ids=[
+                    r['id'] for r in [r for batch in batch_res for r in batch]
+                ]
+            )
+        except UniqueViolationError as e:
+            raise UniquenessException(str(e))
 
     @classmethod
     async def upsert_many(cls, dtos: list[CreateDTOClassType]) -> AppBulkActionResultDTO:
