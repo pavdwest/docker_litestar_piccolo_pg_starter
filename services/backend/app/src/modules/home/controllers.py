@@ -24,7 +24,6 @@ class HomeController(AppController):
                 'message': 'Hello boils and ghouls'
             }
         """
-        request.logger.warning("inside a request")
         return {
             'message': 'Hello boils and ghouls'
         }

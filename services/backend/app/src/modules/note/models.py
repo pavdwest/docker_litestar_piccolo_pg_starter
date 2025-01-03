@@ -1,4 +1,3 @@
-
 from piccolo.columns import Varchar, Integer
 # from piccolo.constraint import UniqueConstraint
 from src.base.models.base import AppModel, SharedModelMixin

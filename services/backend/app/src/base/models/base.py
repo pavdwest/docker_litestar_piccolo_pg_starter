@@ -22,7 +22,6 @@ from src.base.dtos import (
 from src.base.exceptions import NotFoundException
 
 
-
 class OnConflictAction(StrEnum):
     """Utility class for preventing typos in on conflict actions."""
     DO_NOTHING = 'DO NOTHING'

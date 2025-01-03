@@ -1,3 +1,5 @@
+from src.logging.service import logger
+
 from src.database.service import db
 from src.database.models import DatabaseBind
 from src.base.app import create_app
@@ -19,6 +21,7 @@ shared_db_bind = DatabaseBind(
     port=DATABASE_HOST_PORT,
 )
 
+
 # Init db
 db.init(shared_db_bind)
 
@@ -29,3 +32,7 @@ app = create_app(lifespan=[lifespan])
 
 # Init models
 db.init_models()
+
+
+# Ready
+logger.warning("Ready.")
