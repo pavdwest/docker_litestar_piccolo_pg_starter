@@ -13,7 +13,7 @@ from src.config import (
 )
 
 
-shared_db_bind = DatabaseBind(
+db_bind = DatabaseBind(
     host=DATABASE_HOST_NAME,
     name=DATABASE_NAME,
     username=DATABASE_HOST_USERNAME,
@@ -23,7 +23,7 @@ shared_db_bind = DatabaseBind(
 
 
 # Init db
-db.init(shared_db_bind)
+db.init(db_bind)
 
 
 # Init app

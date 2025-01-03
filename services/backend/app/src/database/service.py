@@ -23,20 +23,20 @@ class DatabaseService:
 
     def init(
         self,
-        shared_database_bind: DatabaseBind,
+        database_bind: DatabaseBind,
         retry_count: int = RETRY_COUNT_DEFAULT,
         retry_delay: float = RETRY_DELAY_DEFAULT,
     ) -> None:
         """
         Initialize the database service with the given database bind.
         """
-        self.DATABASE_BIND = shared_database_bind
+        self.DATABASE_BIND = database_bind
         self._retry_count = retry_count
         self._retry_delay = retry_delay
 
         # Shared DB
-        self.create_db(shared_database_bind, retry_count, retry_delay)
-        self.DATABASE = self.init_engine(shared_database_bind)
+        self.create_db(database_bind, retry_count, retry_delay)
+        self.DATABASE = self.init_engine(database_bind)
 
         # Lifecycle Callbacks
         register_on_startup(self.start_connections)
