@@ -100,7 +100,7 @@ class DatabaseService:
 
         for Model in models:
             Model._meta.db = self.DATABASE
-            Model.create_table(if_not_exists=True, auto_create_schema=True).run_sync()
+            Model.create_table(if_not_exists=True).run_sync()
 
     async def start_connections(self) -> None:
         """
