@@ -33,37 +33,53 @@ class DatabaseService:
         self.DATABASE_BIND = shared_database_bind
         self._retry_count = retry_count
         self._retry_delay = retry_delay
-        self._create_db()
-        self._init_engine()
+
+        # Shared DB
+        self.create_db(shared_database_bind, retry_count, retry_delay)
+        self.DATABASE = self.init_engine(shared_database_bind)
+
+        # Lifecycle Callbacks
         register_on_startup(self.start_connections)
         register_on_shutdown(self.close_connections)
 
-    def _create_db(self) -> None:
+    @classmethod
+    def create_db(
+        cls,
+        bind: DatabaseBind,
+        retry_count: int = RETRY_COUNT_DEFAULT,
+        retry_delay: float = RETRY_DELAY_DEFAULT,
+    ) -> None:
         """
-        Create the database if it does not exist.
+        Create a database if it doesn't exist.
+        Parameterised to allow future support for multiple databases.
         """
-        for _ in range(self._retry_count):
+        for _ in range(retry_count):
             try:
-                if database_exists(self.DATABASE_BIND.url_sync):
+                if database_exists(bind.url_sync):
                     logger.info("Database found.")
                     return
                 logger.warning("Creating database...")
-                create_database(self.DATABASE_BIND.url_sync)
+                create_database(bind.url_sync)
                 return
             except Exception as e:
                 logger.error(f"Error creating database: {e}")
                 last_exception = e
-                time.sleep(self._retry_delay)
-        logger.critical(f"Failed to create database after {self._retry_count} retries.")
-        raise DatabaseNotFoundException(self.DATABASE_BIND.name) from last_exception
+                time.sleep(retry_delay)
+        logger.critical(f"Failed to create database after {retry_count} retries.")
+        raise DatabaseNotFoundException(bind.name) from last_exception
 
-    def _init_engine(self) -> None:
+    @classmethod
+    def init_engine(
+        self,
+        bind: DatabaseBind,
+    ) -> None:
         """
-        Initialize the database engine.
+        Utility method to initialize a database engine.
+        Parameterised to allow future support for multiple databases.
         """
-        logger.info("Initializing database engines...")
-        self.DATABASE = PostgresEngine(
-            config=self.DATABASE_BIND.piccolo_config,
+        logger.info("Initializing database engine...")
+        return PostgresEngine(
+            config=bind.piccolo_config,
             # log_queries=True,
             # log_responses=True,
         )
