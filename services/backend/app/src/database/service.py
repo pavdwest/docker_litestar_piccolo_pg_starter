@@ -89,9 +89,10 @@ class DatabaseService:
         Initialize the database models.
         """
         logger.info("Initializing models...")
-        self._create_tables()
+        self.create_tables(self.DATABASE)
 
-    def _create_tables(self) -> None:
+    @classmethod
+    def create_tables(cls, engine: PostgresEngine) -> None:
         """
         Create the database tables.
         """
@@ -99,7 +100,7 @@ class DatabaseService:
         models = get_all_app_models_list()
 
         for Model in models:
-            Model._meta.db = self.DATABASE
+            Model._meta.db = engine
             Model.create_table(if_not_exists=True).run_sync()
 
     async def start_connections(self) -> None:
