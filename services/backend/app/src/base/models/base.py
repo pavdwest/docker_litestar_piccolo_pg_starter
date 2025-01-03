@@ -8,7 +8,7 @@ from piccolo.table import Table
 from piccolo.columns import Timestamp, BigSerial, Boolean
 from piccolo.columns.defaults.timestamp import TimestampNow
 from piccolo.query.methods.insert import Insert
-from piccolo.query.functions import Max, Count
+from piccolo.query.functions import Max
 from inflection import humanize, pluralize
 
 from src.logging.service import logger
