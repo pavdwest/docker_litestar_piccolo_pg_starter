@@ -85,6 +85,23 @@ async def test_read_one(client: AsyncClient):
 
 
 @pytest.mark.asyncio(loop_scope='session')
+async def test_create_one_raises_error_if_not_exists(client: AsyncClient):
+    # Get max id in db
+    max_id = await Note.max_id()
+    not_exist_id = max_id['max'] + 1
+    assert not await Note.exists().where(Note.id==not_exist_id)
+
+    response = await client.get(
+        f"{ApiVersion.V1}/{Model._meta.tablename}/{not_exist_id}"
+    )
+    assert response.status_code == status_codes.HTTP_404_NOT_FOUND
+    assert response.json() == {
+        "status_code": 404,
+        "detail": f"Item with id='{not_exist_id}' not found."
+    }
+
+
+@pytest.mark.asyncio(loop_scope='session')
 async def test_update_one(client: AsyncClient):
     item = Note(
         title='test_update_note_title',

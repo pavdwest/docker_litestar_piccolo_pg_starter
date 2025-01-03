@@ -5,7 +5,7 @@ from inflection import pluralize
 from litestar import Controller, post, get, patch, put, delete
 from litestar.exceptions import HTTPException
 from litestar import status_codes
-from pydantic import conint, NonNegativeInt, Field, PositiveInt
+from pydantic import NonNegativeInt, Field
 
 from src.base.models.base import AppModel
 from src.base.dtos import (
@@ -16,7 +16,7 @@ from src.base.dtos import (
     AppDeleteAllDTO,
     AppDeleteAllResponseDTO,
 )
-from src.base.exceptions import NotFoundException
+from src.base.models.exceptions import NotFoundException
 
 
 class AppController(Controller):

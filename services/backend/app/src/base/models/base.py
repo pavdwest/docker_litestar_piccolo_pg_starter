@@ -8,6 +8,7 @@ from piccolo.table import Table
 from piccolo.columns import Timestamp, BigSerial, Boolean
 from piccolo.columns.defaults.timestamp import TimestampNow
 from piccolo.query.methods.insert import Insert
+from piccolo.query.functions import Max, Count
 from inflection import humanize, pluralize
 
 from src.logging.service import logger
@@ -19,7 +20,7 @@ from src.base.dtos import (
     AppBulkActionResultDTO,
     AppDeleteAllResponseDTO,
 )
-from src.base.exceptions import NotFoundException
+from src.base.models.exceptions import NotFoundException
 
 
 class OnConflictAction(StrEnum):
@@ -79,6 +80,10 @@ class AppModel(
     def humanise_plural(cls) -> str:
         """Human-readable class name."""
         return pluralize(cls.humanise())
+
+    @classmethod
+    async def max_id(cls) -> int:
+        return await cls.select(Max(cls.id)).first().run()
 
     @classmethod
     async def create_one(cls, dto: CreateDTOClassType) -> ReadDTOClassType:

@@ -1,4 +1,9 @@
 from functools import lru_cache
+from typing import TYPE_CHECKING
+
+
+if TYPE_CHECKING:
+    from src.base.models.base import AppModel
 
 
 _APP_MODELS: dict[str, type['AppModel']] = {}
