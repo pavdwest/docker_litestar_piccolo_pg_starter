@@ -10,6 +10,7 @@ from piccolo.columns import Timestamp, BigSerial, Boolean
 from piccolo.columns.defaults.timestamp import TimestampNow
 from piccolo.query.methods.insert import Insert
 from piccolo.query.functions import Max
+from piccolo.querystring import QueryString
 from inflection import humanize, pluralize
 
 from src.logging.service import logger
@@ -268,68 +269,50 @@ class AppModel(
         except UniqueViolationError as e:
             raise UniquenessException(str(e))
 
-
-
     @classmethod
     async def update_many_with_id(
         cls, dtos: list[UpdateWithIdDTOClassType]
     ) -> AppBulkActionResultDTO:
-        """
-        UPDATE my_table AS t
+        """Generate an Update From Statement, e.g.
+
+        UPDATE note AS t
         SET
             title = COALESCE(v.title, t.title),
-            description = COALESCE(v.description, t.description),
-            updated_at = NOW()
+            body = COALESCE(v.description, t.description),
         FROM (
             VALUES
                 (1, 'New Title 1', NULL),
                 (2, NULL, 'New Description 2'),
                 (3, 'New Title 3', 'New Description 3')
-        ) AS v(id, title, description)
-        WHERE t.id = v.id;
+        ) AS v(id, title, body)
+        WHERE t.id = v.id
+        RETURNING t.id;
         """
-        if len(dtos) > 0:
-            all_columns = cls._all_column_names()
-            batch_size = cls._batch_size()
-            update_columns = [c for c in cls._all_column_names() if c not in cls._excluded_column_names()]
-            updated_ids = []
+        batch_size = cls._batch_size()
 
-            for i in range(0, len(dtos), batch_size):
-                # Create the VALUES clause
-                values = []
-                idx_end = cls._idx_end(i, batch_size, len(dtos))
-                for record in dtos[i:idx_end]:
-                    record_values = []
-                    for column in all_columns:
-                        value = getattr(record, column, None)
-                        if value is None:
-                            record_values.append("NULL")
-                        elif isinstance(value, str):
-                            record_values.append(f"'{value.replace('\'', '\'\'')}'")  # Escape single quotes
-                        else:
-                            record_values.append(str(value))
-                    values.append(f"({', '.join(record_values)})")
-                values_clause = ",\n        ".join(values)
+        # Update Columns
+        set_clause = ",\n".join(
+                    [f"{column} = COALESCE(v.{column}, t.{column})" for column in cls.UpdateWithIdDTOClass.__struct_fields__]
+        )
+        updated_ids = []
 
-                # Generate SET clause dynamically
-                set_clause = ",\n    ".join(
-                    [f"{column} = COALESCE(v.{column}, t.{column})" for column in update_columns]
-                )
-
-                # Generate the SQL query
-                raw_query = f"""
-                UPDATE {cls._meta.tablename} AS t
-                SET
-                    {set_clause}
-                FROM (
-                    VALUES
-                        {values_clause}
-                ) AS v({', '.join(all_columns)})
-                WHERE t.id = v.id
-                RETURNING t.id;
-                """
-                res = await cls.raw(raw_query).run()
-                updated_ids.extend([r["id"] for r in res])
+        # Do in batches
+        for i in range(0, len(dtos), batch_size):
+            idx_end = cls._idx_end(i, batch_size, len(dtos))
+            vals = ",\n".join([v.as_raw_sql_update_value() for v in dtos[i:idx_end]])
+            q = f"""
+            UPDATE {cls._meta.tablename} AS t
+            SET
+                {set_clause}
+            FROM (
+                VALUES
+                    {vals}
+            ) AS v({", ".join(cls.UpdateWithIdDTOClass.__struct_fields__)})
+            WHERE t.id = v.id
+            RETURNING t.id;
+            """
+            res = await cls.raw(q).run()
+            updated_ids.extend([r["id"] for r in res])
         return AppBulkActionResultDTO(ids=updated_ids)
 
     @classmethod

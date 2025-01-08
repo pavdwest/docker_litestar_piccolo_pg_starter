@@ -25,3 +25,4 @@ class Note(
     CreateDTOClass = NoteCreate
     ReadDTOClass = NoteRead
     UpdateDTOClass = NoteUpdate
+    UpdateWithIdDTOClass = NoteUpdateWithId
