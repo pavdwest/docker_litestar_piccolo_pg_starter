@@ -328,7 +328,6 @@ class AppModel(
                 WHERE t.id = v.id
                 RETURNING t.id;
                 """
-                logger.warning(raw_query)
                 res = await cls.raw(raw_query).run()
                 updated_ids.extend([r["id"] for r in res])
         return AppBulkActionResultDTO(ids=updated_ids)
