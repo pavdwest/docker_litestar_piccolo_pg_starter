@@ -268,14 +268,28 @@ class AppModel(
         except UniqueViolationError as e:
             raise UniquenessException(str(e))
 
+
+
     @classmethod
     async def update_many_with_id(
         cls, dtos: list[UpdateWithIdDTOClassType]
     ) -> AppBulkActionResultDTO:
+        """
+        UPDATE my_table AS t
+        SET
+            title = COALESCE(v.title, t.title),
+            description = COALESCE(v.description, t.description),
+            updated_at = NOW()
+        FROM (
+            VALUES
+                (1, 'New Title 1', NULL),
+                (2, NULL, 'New Description 2'),
+                (3, 'New Title 3', 'New Description 3')
+        ) AS v(id, title, description)
+        WHERE t.id = v.id;
+        """
         if len(dtos) > 0:
             all_columns = cls._all_column_names()
-            if "id" not in all_columns:
-                raise ValueError("The table must have an 'id' column as the primary key.")
             batch_size = cls._batch_size()
             update_columns = [c for c in cls._all_column_names() if c not in cls._excluded_column_names()]
             updated_ids = []
@@ -283,7 +297,8 @@ class AppModel(
             for i in range(0, len(dtos), batch_size):
                 # Create the VALUES clause
                 values = []
-                for record in dtos[i:i + batch_size]:
+                idx_end = cls._idx_end(i, batch_size, len(dtos))
+                for record in dtos[i:idx_end]:
                     record_values = []
                     for column in all_columns:
                         value = getattr(record, column, None)
@@ -305,8 +320,7 @@ class AppModel(
                 raw_query = f"""
                 UPDATE {cls._meta.tablename} AS t
                 SET
-                    {set_clause},
-                    updated_at = NOW()
+                    {set_clause}
                 FROM (
                     VALUES
                         {values_clause}
@@ -314,6 +328,7 @@ class AppModel(
                 WHERE t.id = v.id
                 RETURNING t.id;
                 """
+                logger.warning(raw_query)
                 res = await cls.raw(raw_query).run()
                 updated_ids.extend([r["id"] for r in res])
         return AppBulkActionResultDTO(ids=updated_ids)
