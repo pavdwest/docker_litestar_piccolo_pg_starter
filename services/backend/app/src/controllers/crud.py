@@ -186,6 +186,22 @@ def generate_crud_controller(
             raise e.http_exception()
     setattr(controller_class, "create_many", create_many)
 
+    @patch(
+        many_endpoints_path,
+        description=f"Update multiple {Model.humanise_plural()} with ids. \
+        Will error out if any item does not exist.",
+        exclude_from_auth=exclude_from_auth,
+    )
+    async def update_many_with_id(
+        self,
+        data: list[UpdateWithIdDTO],  # type: ignore
+    ) -> AppBulkActionResultDTO:
+        try:
+            return await Model.update_many_with_id(data)
+        except NotFoundException as e:
+            raise e.http_exception()
+    setattr(controller_class, "update_many_with_id", update_many_with_id)
+
     @put(
         many_endpoints_path,
         description=f"Create or update multiple {Model.humanise_plural()}. \

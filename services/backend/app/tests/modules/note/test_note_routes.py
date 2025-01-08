@@ -374,6 +374,62 @@ async def test_create_many_raises_error_for_duplicate(client: AsyncClient):
 
 
 @pytest.mark.asyncio(loop_scope="session")
+async def test_update_many(client: AsyncClient):
+    # Delete all items
+    await Note.delete_all(force=True)
+
+    item1 = {
+        "title": "test_update_many_note_title_1",
+        "body": "test_update_many_note_body_1",
+        "rating": 1,
+    }
+    item2 = {
+        "title": "test_update_many_note_title_2",
+        "body": "test_update_many_note_body_2",
+        "rating": 2,
+    }
+
+    # Create item1 and item2 directly
+    db_item1 = Note(**item1)
+    await db_item1.save()
+    db_item2 = Note(**item2)
+    await db_item2.save()
+
+    item1_update = {
+        "id": db_item1.id,
+        "title": "test_update_many_note_title_1",
+        # "body": "test_update_many_note_body_1_updated", # Omit optional field to test partial update
+        "rating": 3,
+    }
+    item2_update = {
+        "id": db_item2.id,
+        # "title": "test_update_many_note_title_2", # Omit required field to test partial update
+        "body": "test_update_many_note_body_2_updated",
+        "rating": 4,
+    }
+
+    response = await client.patch(
+        f"{ApiVersion.V1}/{Model._meta.tablename}/many", json=[item1_update, item2_update]
+    )
+
+    assert response.status_code == status_codes.HTTP_200_OK
+    items = response.json()
+    assert len(items["ids"]) == 2
+
+    # Get item1 from db
+    db_item1 = await Note.read_one(items["ids"][0])
+    assert db_item1.title == item1_update["title"]
+    assert db_item1.body == "test_update_many_note_body_1"
+    assert db_item1.rating == item1_update["rating"]
+
+    # Get item 2 from db
+    db_item2 = await Note.read_one(items["ids"][1])
+    assert db_item2.title == "test_update_many_note_title_2"
+    assert db_item2.body == item2_update["body"]
+    assert db_item2.rating == item2_update["rating"]
+
+
+@pytest.mark.asyncio(loop_scope="session")
 async def test_upsert_many_create_new(client: AsyncClient):
     # Delete all items
     await Note.delete_all(force=True)

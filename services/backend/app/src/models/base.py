@@ -269,6 +269,56 @@ class AppModel(
             raise UniquenessException(str(e))
 
     @classmethod
+    async def update_many_with_id(
+        cls, dtos: list[UpdateWithIdDTOClassType]
+    ) -> AppBulkActionResultDTO:
+        if len(dtos) > 0:
+            all_columns = cls._all_column_names()
+            if "id" not in all_columns:
+                raise ValueError("The table must have an 'id' column as the primary key.")
+            batch_size = cls._batch_size()
+            update_columns = [c for c in cls._all_column_names() if c not in cls._excluded_column_names()]
+            updated_ids = []
+
+            for i in range(0, len(dtos), batch_size):
+                # Create the VALUES clause
+                values = []
+                for record in dtos[i:i + batch_size]:
+                    record_values = []
+                    for column in all_columns:
+                        value = getattr(record, column, None)
+                        if value is None:
+                            record_values.append("NULL")
+                        elif isinstance(value, str):
+                            record_values.append(f"'{value.replace('\'', '\'\'')}'")  # Escape single quotes
+                        else:
+                            record_values.append(str(value))
+                    values.append(f"({', '.join(record_values)})")
+                values_clause = ",\n        ".join(values)
+
+                # Generate SET clause dynamically
+                set_clause = ",\n    ".join(
+                    [f"{column} = COALESCE(v.{column}, t.{column})" for column in update_columns]
+                )
+
+                # Generate the SQL query
+                raw_query = f"""
+                UPDATE {cls._meta.tablename} AS t
+                SET
+                    {set_clause},
+                    updated_at = NOW()
+                FROM (
+                    VALUES
+                        {values_clause}
+                ) AS v({', '.join(all_columns)})
+                WHERE t.id = v.id
+                RETURNING t.id;
+                """
+                res = await cls.raw(raw_query).run()
+                updated_ids.extend([r["id"] for r in res])
+        return AppBulkActionResultDTO(ids=updated_ids)
+
+    @classmethod
     async def upsert_many(
         cls, dtos: list[CreateDTOClassType]
     ) -> AppBulkActionResultDTO:
