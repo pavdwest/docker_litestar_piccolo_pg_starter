@@ -1,16 +1,17 @@
 from piccolo.columns import Varchar, Integer
+
 # from piccolo.constraint import UniqueConstraint
-from src.base.models.base import AppModel, SharedModelMixin
-from src.modules.note.dtos import NoteCreate, NoteRead, NoteUpdate
+from src.models.base import AppModel
+from src.modules.note.dtos import NoteCreate, NoteRead, NoteUpdate, NoteUpdateWithId
 
 
 class Note(
     AppModel[
         NoteCreate,
         NoteRead,
-        NoteUpdate
+        NoteUpdate,
+        NoteUpdateWithId
     ],
-    SharedModelMixin,
 ):
     # Fields
     title = Varchar(required=True, unique=True)

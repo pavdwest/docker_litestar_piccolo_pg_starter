@@ -1,16 +1,16 @@
 services:
-  shared-database-host:
+  database-host:
     image: postgres:16-alpine
     restart: unless-stopped
     expose:
       - 5432
     environment:
-      - POSTGRES_INITDB_ARGS=--auth-host=scram-sha-256
-      - POSTGRES_HOST_AUTH_METHOD=scram-sha-256
-      - POSTGRES_USER=${DATABASE_HOST_USERNAME}
-      - POSTGRES_PASSWORD=${DATABASE_HOST_PASSWORD}
-      - POSTGRES_DB=${DATABASE_NAME}
-      - POSTGRES_PORT=5432
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
+      POSTGRES_USER: ${DATABASE_HOST_USERNAME}
+      POSTGRES_PASSWORD: ${DATABASE_HOST_PASSWORD}
+      POSTGRES_DB: ${DATABASE_NAME}
+      POSTGRES_PORT: 5432
     ports:
       # Expose on different port to prevent conflict with local
       - '6543:5432'
@@ -21,11 +21,11 @@ services:
       retries: 20
       start_period: 2s
     volumes:
-      - shared-database-host-data:/var/lib/postgresql/data/
+      - database-host-data:/var/lib/postgresql/data/
 
   backend:
     depends_on:
-      shared-database-host:
+      database-host:
         condition: service_healthy
     build: ./services/backend
     working_dir: /app
@@ -33,15 +33,15 @@ services:
     ports:
       - '8000:8000'
     environment:
-      - WATCHFILES_FORCE_POLLING=true
-      - PYTHONBUFFERED=1
-      - PYTHONDONTWRITEBYTECODE=1
-      - PROJECT_NAME=Project
-      - DATABASE_HOST_NAME=shared-database-host
-      - DATABASE_HOST_PORT=5432
-      - DATABASE_HOST_USERNAME=${DATABASE_HOST_USERNAME}
-      - DATABASE_HOST_PASSWORD=${DATABASE_HOST_PASSWORD}
-      - DATABASE_NAME=${DATABASE_NAME}
+      WATCHFILES_FORCE_POLLING: true
+      PYTHONBUFFERED: 1
+      PYTHONDONTWRITEBYTECODE: 1
+      PROJECT_NAME: Project
+      DATABASE_HOST_NAME: database-host
+      DATABASE_HOST_PORT: 5432
+      DATABASE_HOST_USERNAME: ${DATABASE_HOST_USERNAME}
+      DATABASE_HOST_PASSWORD: ${DATABASE_HOST_PASSWORD}
+      DATABASE_NAME: ${DATABASE_NAME}
     command: uv run litestar --app src.main:app run --host=0.0.0.0 --port=8000 --reload
     volumes:
       - ./services/backend/app:/app
@@ -49,5 +49,5 @@ services:
       - /app/.pytest_cache
 
 volumes:
-  shared-database-host-data:
+  database-host-data:
     driver: local

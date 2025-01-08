@@ -1,26 +1,38 @@
 from typing import Optional, Annotated
+from msgspec import Meta
 
-from pydantic import Field
-
-from src.base.dtos import AppCreateDTO, AppReadDTO, AppUpdateDTO
-
-
-class NoteCommon:
-    title: str
-    body: str
-    rating: Annotated[int, Field(ge=1, le=5)]
-
-
-
-class NoteCreate(AppCreateDTO, NoteCommon):
-    ...
+from src.dtos import (
+    AppCreateDTO,
+    AppReadDTO,
+    AppUpdateDTO,
+    AppUpdateWithIdDTO,
+    StringShort,
+    StringLong,
+)
 
 
-class NoteRead(AppReadDTO, NoteCommon):
-    ...
+IntRating = Annotated[int, Meta(ge=1, le=5)]
+
+
+class NoteCreate(AppCreateDTO, kw_only=True):
+    title: StringShort
+    body: StringLong
+    rating: IntRating
+
+
+class NoteRead(AppReadDTO):
+    title: StringShort
+    body: StringLong
+    rating: IntRating
 
 
 class NoteUpdate(AppUpdateDTO):
-    title: Optional[str] = None
-    body: Optional[str] = None
-    rating: Annotated[Optional[int], Field(ge=1, le=5)] = None
+    title: Optional[StringShort] = None
+    body: Optional[StringLong] = None
+    rating: Optional[IntRating] = None
+
+
+class NoteUpdateWithId(AppUpdateWithIdDTO):
+    title: Optional[StringShort] = None
+    body: Optional[StringLong] = None
+    rating: Optional[IntRating] = None

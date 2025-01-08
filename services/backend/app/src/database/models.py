@@ -3,7 +3,7 @@ from enum import StrEnum
 from functools import lru_cache
 from pydantic import computed_field
 
-from src.base.dtos import AppDTO
+from src.dtos import AppDTO
 
 
 class DatabaseBind(AppDTO):

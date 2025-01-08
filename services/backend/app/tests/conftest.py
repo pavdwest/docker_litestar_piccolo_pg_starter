@@ -1,16 +1,15 @@
 from contextlib import asynccontextmanager
-import pytest
 
 from litestar.testing.client.async_client import AsyncTestClient
 import pytest_asyncio
 from litestar import Litestar
-from sqlalchemy_utils import drop_database, database_exists, create_database
+from sqlalchemy_utils import drop_database, database_exists
 
 from src.logging.service import logger
 from src import config
 from src.database.models import DatabaseBind
 from src.database.service import db
-from src.base.app import create_app
+from src.app import create_app
 
 
 # App Lifespan manager
@@ -38,11 +37,10 @@ def init_db():
     db.init(test_db_bind)
 
 
-@pytest.fixture(scope='session')
+@pytest_asyncio.fixture(scope='session')
 def app():
     init_db()
     app = create_app(lifespan=[])
-    db.init_models()
     yield app
 
 

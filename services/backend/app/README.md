@@ -6,9 +6,9 @@
 
     `.../models/my_model/dtos.py`           for the Pydantic validators
 
-    `.../models/my_model/controller.py`     for the controller. See `src.base.controllers.base.generate_crud_controller`, which can generates a basic CRUD controller for ease of use.
+    `.../models/my_model/controller.py`     for the controller. See `src.controllers.generate_crud_controller`, which can generates a basic CRUD controller for ease of use.
 
-2. Add the controller to `src.base.controllers.all.get_all_controllers`
+2. Add the controller to `src.controllers.all.get_all_controllers`
 
 3. Create migration:
 

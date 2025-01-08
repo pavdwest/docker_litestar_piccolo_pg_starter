@@ -1,7 +1,7 @@
 from litestar.exceptions import HTTPException
 from litestar import status_codes
 
-from src.base.exceptions import AppException
+from src.exceptions import AppException
 
 
 class NotFoundException(AppException):
@@ -16,8 +16,8 @@ class NotFoundException(AppException):
 class UniquenessException(AppException):
     def http_exception(self):
         raise HTTPException(
-                status_code=status_codes.HTTP_409_CONFLICT,
-                detail=str(self),
+            status_code=status_codes.HTTP_409_CONFLICT,
+            detail=str(self),
         )
 
 

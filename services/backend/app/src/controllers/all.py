@@ -1,4 +1,4 @@
-from src.base.controllers.base import AppController
+from src.controllers.base import AppController
 
 
 def get_all_controllers() -> list[type[AppController]]:

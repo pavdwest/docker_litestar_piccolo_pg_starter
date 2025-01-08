@@ -1,4 +1,4 @@
-from src.base.exceptions import AppException
+from src.exceptions import AppException
 
 
 class DatabaseNotFoundException(AppException):

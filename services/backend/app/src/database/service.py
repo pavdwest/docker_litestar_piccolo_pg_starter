@@ -5,10 +5,10 @@ from piccolo.engine.postgres import PostgresEngine
 from sqlalchemy_utils import database_exists, create_database
 
 from src.logging.service import logger
-from src.database.models import DatabaseBind
 from src.database.exceptions import DatabaseNotFoundException
-from src.base.models.all import get_all_app_models_list
-from src.base.lifespan import register_on_startup, register_on_shutdown
+from src.database.models import DatabaseBind
+from src.models.all import get_all_app_models_list
+from src.lifespan import register_on_startup, register_on_shutdown
 
 
 class DatabaseService:
@@ -35,8 +35,9 @@ class DatabaseService:
         self._retry_delay = retry_delay
 
         # Shared DB
-        self.create_db(database_bind, retry_count, retry_delay)
-        self.DATABASE = self.init_engine(database_bind)
+        self.create_db(self.DATABASE_BIND, self._retry_count, self._retry_delay)
+        self.DATABASE = self.init_engine(self.DATABASE_BIND)
+        self.create_tables(self.DATABASE)
 
         # Lifecycle Callbacks
         register_on_startup(self.start_connections)
@@ -77,19 +78,12 @@ class DatabaseService:
         Utility method to initialize a database engine.
         Parameterised to allow future support for multiple databases.
         """
-        logger.info("Initializing database engine...")
+        logger.info("Initialising database engine...")
         return PostgresEngine(
             config=bind.piccolo_config,
             # log_queries=True,
             # log_responses=True,
         )
-
-    def init_models(self) -> None:
-        """
-        Initialize the database models.
-        """
-        logger.info("Initializing models...")
-        self.create_tables(self.DATABASE)
 
     @classmethod
     def create_tables(cls, engine: PostgresEngine) -> None:

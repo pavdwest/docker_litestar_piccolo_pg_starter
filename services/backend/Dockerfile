@@ -32,5 +32,4 @@ WORKDIR /app
 COPY ./app/pyproject.toml ./
 COPY ./app/uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
-RUN pip install https://github.com/sinisaos/piccolo/archive/dev.zip
 COPY . /app

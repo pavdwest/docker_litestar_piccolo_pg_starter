@@ -1,5 +1,5 @@
 services:
-  shared-database-host:
+  database-host:
     image: postgres:16-alpine
     restart: unless-stopped
     expose:
@@ -22,7 +22,7 @@ services:
 
   backend:
     depends_on:
-      shared-database-host:
+      database-host:
         condition: service_healthy
     build: ./services/backend
     working_dir: /backend/app
@@ -34,7 +34,7 @@ services:
       - PYTHONBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
       - PROJECT_NAME=Project
-      - DATABASE_HOST_NAME=shared-database-host
+      - DATABASE_HOST_NAME=database-host
       - DATABASE_HOST_PORT=5432
       - DATABASE_HOST_USERNAME=${DATABASE_HOST_USERNAME}
       - DATABASE_HOST_PASSWORD=${DATABASE_HOST_PASSWORD}
