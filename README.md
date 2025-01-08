@@ -2,10 +2,10 @@
 
 A dockerised starter stack containing the following components:
 
-* [LiteStar](https://github.com/litestar-org/litestar) backend
+* [LiteStar](https://litestar.dev/) backend
 * [Postgres](https://www.postgresql.org/) database
-* [Piccolo ORM](https://github.com/piccolo-orm/piccolo) (Async)
-* [Pydantic](https://github.com/pydantic/pydantic) Validations
+* [Piccolo ORM](https://piccolo-orm.readthedocs.io/en/latest/#) (Async)
+* [Msgspec](https://jcristharif.com/msgspec/) Validations
 
 
 # Pre-Requisites
@@ -20,11 +20,11 @@ TODO
 
 1. Clone repo:
 
-    ```git clone git@github.com:pavdwest/pureformant.git```
+    ```git clone git@github.com:pavdwest/docker_litestar_piccolo_pg.git```
 
 2. Enter app directory:
 
-    ```cd pureformant/services/backend/app```
+    ```cd docker_litestar_piccolo_pg/services/backend/app```
 
 3. Create & activate virtual environment:
 
@@ -65,7 +65,7 @@ Azure Data Studio is recommended. Connection details:
 
 * Install the Postgres Plugin
 * Connection type: PostgreSQL
-* Server Name: Whatever you want, e.g. `localhost-shared`
+* Server Name: Whatever you want, e.g. `localhost-db`
 * Authentication Type: `password`
 * User Name: As per `.env`
 * Password: As per `.env`
