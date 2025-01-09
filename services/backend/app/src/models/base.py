@@ -1,6 +1,7 @@
 from enum import StrEnum
 import math
 import time
+import types
 from typing import Generic, Self, TypeVar
 from datetime import datetime
 from functools import lru_cache
@@ -62,6 +63,7 @@ class AppModel(
     ],
     AppModelBase,
 ):
+    # Fields
     id = BigSerial(required=True, primary_key=True)
     created_at = Timestamp(required=True, default=TimestampNow)
     updated_at = Timestamp(
@@ -351,3 +353,27 @@ class AppModel(
         res = await cls.delete(force=True).run()
         logger.info(f"Deleted {count} items.")
         return AppDeleteAllResponseDTO(count=count)
+
+
+def generate_model(
+    CreateDTO: type[CreateDTOClassType],
+    ReadDTO: type[ReadDTOClassType],
+    UpdateDTO: type[UpdateDTOClassType],
+    UpdateWithIdDTO: type[UpdateWithIdDTOClassType],
+) -> type[AppModel]:
+    return types.new_class(
+        'GeneratedModel',
+        (AppModel[
+            CreateDTO,
+            ReadDTO,
+            UpdateDTO,
+            UpdateWithIdDTO,
+        ],),
+        {},
+        lambda ns: ns.update({
+            'CreateDTOClass': CreateDTO,
+            'ReadDTOClass': ReadDTO,
+            'UpdateDTOClass': UpdateDTO,
+            'UpdateWithIdDTOClass': UpdateWithIdDTO,
+        })
+    )
