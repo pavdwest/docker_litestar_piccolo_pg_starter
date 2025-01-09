@@ -6,14 +6,14 @@ from src.modules.note.dtos import NoteCreate, NoteRead, NoteUpdate, NoteUpdateWi
 
 
 NoteBase = generate_model(
+    'NoteBase',
     NoteCreate,
     NoteRead,
     NoteUpdate,
-    NoteUpdateWithId
+    NoteUpdateWithId,
 )
 
 class Note(NoteBase):
-    # Fields
     title = Varchar(required=True, unique=True)
     body = Varchar(required=True)
     rating = Integer(required=True)

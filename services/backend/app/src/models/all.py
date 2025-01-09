@@ -12,9 +12,10 @@ _APP_MODELS: dict[str, type["AppModel"]] = {}
 def init_all_app_models() -> None:
     """Import all AppModel subclasses here to correctly init them."""
     from src.modules.note.models import Note
+    register_app_model(Note)
 
 
-def cache_app_model(app_model: type["AppModel"]) -> None:
+def register_app_model(app_model: type["AppModel"]) -> None:
     _APP_MODELS.update({app_model.__name__: app_model})
 
 

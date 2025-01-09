@@ -11,11 +11,9 @@ from piccolo.columns import Timestamp, BigSerial, Boolean
 from piccolo.columns.defaults.timestamp import TimestampNow
 from piccolo.query.methods.insert import Insert
 from piccolo.query.functions import Max
-from piccolo.querystring import QueryString
 from inflection import humanize, pluralize
 
 from src.logging.service import logger
-from src.models.all import cache_app_model
 from src.dtos import (
     AppCreateDTO,
     AppReadDTO,
@@ -50,6 +48,7 @@ class AppModelBase(Table):
     UpdateWithIdDTOClass: type[AppUpdateWithIdDTO] = None
 
 
+# Insert Query Constants
 PSQL_QUERY_ALLOWED_MAX_ARGS = 32767
 INSERT_BATCHED_DEFAULT_SIZE = 5000
 
@@ -70,10 +69,6 @@ class AppModel(
         required=True, default=TimestampNow, auto_update=datetime.now
     )
     is_active = Boolean(required=True, default=True)
-
-    def __init_subclass__(cls, *args, **kwargs):
-        cache_app_model(cls)
-        return super().__init_subclass__(*args, **kwargs)
 
     @classmethod
     @lru_cache(maxsize=1)
@@ -356,13 +351,14 @@ class AppModel(
 
 
 def generate_model(
+    ClassName: str,
     CreateDTO: type[CreateDTOClassType],
     ReadDTO: type[ReadDTOClassType],
     UpdateDTO: type[UpdateDTOClassType],
     UpdateWithIdDTO: type[UpdateWithIdDTOClassType],
 ) -> type[AppModel]:
-    return types.new_class(
-        'GeneratedModel',
+    ModelClass = types.new_class(
+        ClassName,
         (AppModel[
             CreateDTO,
             ReadDTO,
@@ -377,3 +373,4 @@ def generate_model(
             'UpdateWithIdDTOClass': UpdateWithIdDTO,
         })
     )
+    return ModelClass
