@@ -6,6 +6,8 @@ A dockerised starter stack containing the following components:
 * [Postgres](https://www.postgresql.org/) database
 * [Piccolo ORM](https://piccolo-orm.readthedocs.io/en/latest/#) (Async)
 * [Msgspec](https://jcristharif.com/msgspec/) Validations
+* Generic Model Base Class
+* Generic Crud Controller generator
 
 
 # Pre-Requisites
