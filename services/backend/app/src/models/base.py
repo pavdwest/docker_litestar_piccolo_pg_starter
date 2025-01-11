@@ -267,6 +267,21 @@ class AppModel(
             raise UniquenessException(str(e))
 
     @classmethod
+    @lru_cache(maxsize=1)
+    def _update_set_clause(cls) -> str:
+        return ",\n".join(
+            [
+                f"{column} = COALESCE(v.{column}, t.{column})"
+                for column in cls.UpdateWithIdDTOClass.__struct_fields__
+            ]
+        )
+
+    @classmethod
+    @lru_cache(maxsize=1)
+    def _update_as_v_clause(cls) -> str:
+        return f"v({", ".join(cls.UpdateWithIdDTOClass.__struct_fields__)})"
+
+    @classmethod
     async def update_many_with_id(
         cls, dtos: list[UpdateWithIdDTOClassType]
     ) -> AppBulkActionResultDTO:
@@ -286,11 +301,6 @@ class AppModel(
         RETURNING t.id;
         """
         batch_size = cls._batch_size()
-
-        # Update Columns
-        set_clause = ",\n".join(
-                    [f"{column} = COALESCE(v.{column}, t.{column})" for column in cls.UpdateWithIdDTOClass.__struct_fields__]
-        )
         updated_ids = []
 
         # Do in batches
@@ -300,11 +310,11 @@ class AppModel(
             q = f"""
             UPDATE {cls._meta.tablename} AS t
             SET
-                {set_clause}
+                {cls._update_set_clause()}
             FROM (
                 VALUES
                     {vals}
-            ) AS v({", ".join(cls.UpdateWithIdDTOClass.__struct_fields__)})
+            ) AS {cls._update_as_v_clause()}
             WHERE t.id = v.id
             RETURNING t.id;
             """
