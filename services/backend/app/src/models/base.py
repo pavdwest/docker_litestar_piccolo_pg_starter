@@ -83,7 +83,7 @@ class AppModel(
 
     @classmethod
     async def max_id(cls) -> int:
-        return await cls.select(Max(cls.id)).first().run()
+        return (await cls.select(Max(cls.id)).first().run())["max"]
 
     @classmethod
     async def create_one(cls, dto: CreateDTOClassType) -> ReadDTOClassType:

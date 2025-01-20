@@ -83,10 +83,10 @@ async def test_read_one(client: AsyncClient):
 
 
 @pytest.mark.asyncio(loop_scope="session")
-async def test_create_one_raises_error_if_not_exists(client: AsyncClient):
+async def test_read_one_raises_error_if_not_exists(client: AsyncClient):
     # Get max id in db
     max_id = await Note.max_id()
-    not_exist_id = max_id["max"] + 1
+    not_exist_id = max_id + 1
     assert not await Note.exists().where(Note.id == not_exist_id)
 
     response = await client.get(
