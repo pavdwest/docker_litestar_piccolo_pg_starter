@@ -44,6 +44,7 @@ class AppUpdateWithIdDTO(AppDTO):
     is_active: bool = True
 
     @classmethod
+    @lru_cache(maxsize=1)
     def update_as_columns_clause(cls) -> str:
         return ", ".join([f for f in cls.__struct_fields__])
 
