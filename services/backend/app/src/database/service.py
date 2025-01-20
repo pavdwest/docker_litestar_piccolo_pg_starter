@@ -7,7 +7,7 @@ from sqlalchemy_utils import database_exists, create_database
 from src.logging.service import logger
 from src.database.exceptions import DatabaseNotFoundException
 from src.database.models import DatabaseBind
-from src.models.all import get_all_app_models_list
+from src.models.all import MODELS
 from src.lifespan import register_on_startup, register_on_shutdown
 
 
@@ -91,7 +91,7 @@ class DatabaseService:
         Create the database tables.
         """
         logger.info("Creating database tables...")
-        models = get_all_app_models_list()
+        models = MODELS.get_all()
 
         for Model in models:
             Model._meta.db = engine

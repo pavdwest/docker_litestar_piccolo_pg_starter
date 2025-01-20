@@ -1,13 +1,10 @@
 from src.controllers.base import AppController
+from src.manifest import ClassManifest
 
 
-def get_all_controllers() -> list[type[AppController]]:
-    controllers = []
-
-    from src.modules.home.controllers import HomeController
-    controllers.append(HomeController)
-
-    from src.modules.note.controllers import NoteController
-    controllers.append(NoteController)
-
-    return controllers
+CONTROLLERS = ClassManifest[AppController](
+    [
+        "src.modules.home.controllers.HomeController",
+        "src.modules.note.controllers.NoteController",
+    ]
+)
