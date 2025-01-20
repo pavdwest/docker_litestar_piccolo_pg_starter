@@ -513,3 +513,27 @@ async def test_upsert_many_create_one_update_one(client: AsyncClient):
     assert db_item2.title == item2["title"]
     assert db_item2.body == item2["body"]
     assert db_item2.rating == item2["rating"]
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_delete_all(client: AsyncClient):
+    await Note.delete_all(force=True)
+
+    # Create 2 items
+    items = []
+    for i in range(2):
+        item = Note(
+            title=f"test_delete_all_note_title_{i}",
+            body=f"test_delete_all_note_body_{i}",
+            rating=i,
+        )
+        await item.save()
+        await item.refresh()
+        items.append(item)
+
+    assert await Note.count() == 2
+
+    # Call delete_all
+    response = await client.delete(f"{ApiVersion.V1}/{Model._meta.tablename}")
+    assert response.status_code == status_codes.HTTP_204_NO_CONTENT
+    assert await Note.count() == 0

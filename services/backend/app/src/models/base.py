@@ -7,7 +7,7 @@ from datetime import datetime
 from functools import lru_cache
 
 from piccolo.table import Table
-from piccolo.columns import Timestamp, BigSerial, Boolean
+from piccolo.columns import Timestamp, BigSerial, Boolean, Column
 from piccolo.columns.defaults.timestamp import TimestampNow
 from piccolo.query.methods.insert import Insert
 from piccolo.query.functions import Max
@@ -62,7 +62,6 @@ class AppModel(
     ],
     AppModelBase,
 ):
-    # Fields
     id = BigSerial(required=True, primary_key=True)
     created_at = Timestamp(required=True, default=TimestampNow)
     updated_at = Timestamp(
@@ -126,12 +125,22 @@ class AppModel(
 
     @classmethod
     @lru_cache(maxsize=1)
-    def _excluded_column_names(cls):
-        return ["id", "created_at", "updated_at", "is_active"]
+    def _excluded_columns(cls):
+        return [
+            cls.id,
+            cls.created_at,
+            cls.updated_at,
+            cls.is_active,
+        ]
 
     @classmethod
     @lru_cache(maxsize=1)
-    def _model_primary_key_column_names(cls):
+    def _excluded_column_names(cls):
+        return [c._meta.name for c in cls._excluded_columns()]
+
+    @classmethod
+    @lru_cache(maxsize=1)
+    def _primary_key_column_names(cls):
         cols = [
             c._meta.name
             for c in cls._meta.columns
@@ -143,31 +152,42 @@ class AppModel(
     @classmethod
     @lru_cache(maxsize=1)
     def _add_on_conflict_params(cls, query: Insert) -> Insert:
+        """
+        Adds conflict resolution parameters to an Insert query.
+
+        Modifies the given Insert query to handle conflicts based on the unique columns
+        or constraints defined in the model. This is unique to Postgres' ON CONFLICT clause.
+        It sets the conflict target and specifies the action to take (update) along with
+        the columns to update in case of a conflict.
+
+        Args:
+            query (Insert): The Insert query to modify.
+
+        Returns:
+            Insert: The modified Insert query with conflict resolution parameters added.
+        """
         unique_cols = cls._unique_columns()
         # If there is only one unique column, use it as the target and update all other columns
         if len(unique_cols) == 1:
             return query.on_conflict(
                 target=unique_cols[0],
                 action=OnConflictAction.DO_UPDATE,
-                values=cls._on_conflict_update_columns(
-                    tuple([unique_cols[0]._meta.name])
-                ),
+                values=cls._on_conflict_update_columns(),
             )
         # If there is one unique constraint, use that as the target and update all other columns
+        elif len(cls._meta.constraints) == 1:
+            chosen_constraint = cls._meta.constraints[0]
+            chosen_constraint_cols = cls._on_conflict_update_columns()
+            return query.on_conflict(
+                target=chosen_constraint._meta.name,
+                action=OnConflictAction.DO_UPDATE,
+                values=chosen_constraint_cols,
+            )
         else:
-            if len(cls._meta.constraints) == 1:
-                chosen_constraint = cls._meta.constraints[0]
-                chosen_constraint_cols = cls._on_conflict_update_columns(
-                    tuple([chosen_constraint._meta.params["_unique_columns"]])
-                )
-                return query.on_conflict(
-                    target=chosen_constraint._meta.name,
-                    action=OnConflictAction.DO_UPDATE,
-                    values=chosen_constraint_cols,
-                )
-            else:
-                logger.warning("NOT SURE WHAT TO DO HERE!")
-        return query
+            logger.warning("NOT SURE WHAT TO DO HERE! On Conflict Statement will likely not work as expected.")
+            return query.on_conflict(
+                action=OnConflictAction.DO_NOTHING,
+            )
 
     @classmethod
     @lru_cache
@@ -179,7 +199,17 @@ class AppModel(
 
     @classmethod
     @lru_cache(maxsize=1)
-    def _on_conflict_update_columns(cls, excluded_names: tuple[str]):
+    def _on_conflict_update_columns(cls) -> list[Column]:
+        """
+        Returns a list of columns that should be updated on conflict. It excludes unique columns
+        and columns specified in the excluded_names tuple like id, created_at, updated_at and is_active.
+
+        Args:
+            excluded_names (tuple[str]): A tuple of column names to be excluded from the update.
+
+        Returns:
+            list: A list of columns to be updated on conflict.
+        """
         return [
             c
             for c in cls._meta.columns
@@ -188,7 +218,14 @@ class AppModel(
 
     @classmethod
     @lru_cache(maxsize=1)
-    def _unique_columns(cls):
+    def _unique_columns(cls) -> list[Column]:
+        """
+        Retrieve a list of unique columns for the model.
+        This method uses an LRU cache to store the result, ensuring that it is only
+        computed once and reused for subsequent calls. The cache has a maximum size of 1.
+        Returns:
+            list: A list of columns that are unique and not excluded by the model.
+        """
         return [
             c
             for c in cls._meta.columns
@@ -208,7 +245,7 @@ class AppModel(
         )
 
     @classmethod
-    def _idx_end(cls, i: int, batch_size: int, total_items: int) -> int:
+    def _get_batch_idx_end(cls, i: int, batch_size: int, total_items: int) -> int:
         return min(i + batch_size, total_items)
 
     @classmethod
@@ -225,7 +262,7 @@ class AppModel(
     ) -> None:
         batch_size = min(batch_size, cls._batch_size())
         for i in range(0, len(items), batch_size):
-            idx_end = cls._idx_end(i, batch_size, len(items))
+            idx_end = cls._get_batch_idx_end(i, batch_size, len(items))
             await cls.insert(*items[i:idx_end]).run()
 
     # TODO: Fix when composite unique constraint functionality is available
@@ -238,33 +275,6 @@ class AppModel(
         await cls._add_on_conflict_params(cls.insert(item)).run()
         await item.refresh()
         return cls.ReadDTOClass(**item.to_dict())
-
-    @classmethod
-    async def create_many(
-        cls, dtos: list[CreateDTOClassType]
-    ) -> AppBulkActionResultDTO:
-        batch_size = cls._batch_size()
-        batch_res = []
-        batch_number = 1
-
-        start = time.monotonic()
-        try:
-            for i in range(0, len(dtos), batch_size):
-                idx_end = cls._idx_end(i, batch_size, len(dtos))
-                batch_items = dtos[i:idx_end]
-                q = cls.insert(*[cls(**i.dict()) for i in batch_items]).run()
-                batch_res.append(await q)
-                logger.info(
-                    f"Batch {batch_number} size {len(batch_items)}: items idx={i} to idx={i+len(batch_items)-1} inserted."
-                )
-                batch_number += 1
-            logger.info(f"Time taken: {time.monotonic() - start} seconds.")
-
-            return AppBulkActionResultDTO(
-                ids=[r["id"] for r in [r for batch in batch_res for r in batch]]
-            )
-        except UniqueViolationError as e:
-            raise UniquenessException(str(e))
 
     @classmethod
     @lru_cache(maxsize=1)
@@ -305,7 +315,7 @@ class AppModel(
 
         # Do in batches
         for i in range(0, len(dtos), batch_size):
-            idx_end = cls._idx_end(i, batch_size, len(dtos))
+            idx_end = cls._get_batch_idx_end(i, batch_size, len(dtos))
             vals = ",\n".join([v.as_raw_sql_update_value() for v in dtos[i:idx_end]])
             q = f"""
             UPDATE {cls._meta.tablename} AS t
@@ -323,6 +333,33 @@ class AppModel(
         return AppBulkActionResultDTO(ids=updated_ids)
 
     @classmethod
+    async def create_many(
+        cls, dtos: list[CreateDTOClassType]
+    ) -> AppBulkActionResultDTO:
+        batch_size = cls._batch_size()
+        batch_res = []
+        batch_number = 1
+
+        start = time.monotonic()
+        try:
+            for i in range(0, len(dtos), batch_size):
+                idx_end = cls._get_batch_idx_end(i, batch_size, len(dtos))
+                batch_items = dtos[i:idx_end]
+                q = cls.insert(*[cls(**i.dict()) for i in batch_items]).run()
+                batch_res.append(await q)
+                logger.info(
+                    f"Batch {batch_number} size {len(batch_items)}: items idx={i} to idx={i+len(batch_items)-1} inserted."
+                )
+                batch_number += 1
+            logger.info(f"Time taken: {time.monotonic() - start} seconds.")
+
+            return AppBulkActionResultDTO(
+                ids=[r["id"] for r in [r for batch in batch_res for r in batch]]
+            )
+        except UniqueViolationError as e:
+            raise UniquenessException(str(e))
+
+    @classmethod
     async def upsert_many(
         cls, dtos: list[CreateDTOClassType]
     ) -> AppBulkActionResultDTO:
@@ -332,7 +369,7 @@ class AppModel(
 
         start = time.monotonic()
         for i in range(0, len(dtos), batch_size):
-            idx_end = cls._idx_end(i, batch_size, len(dtos))
+            idx_end = cls._get_batch_idx_end(i, batch_size, len(dtos))
             batch_items = dtos[i:idx_end]
             q = cls._add_on_conflict_params(
                 cls.insert(*[cls(**i.dict()) for i in batch_items])
@@ -355,7 +392,7 @@ class AppModel(
     @classmethod
     async def delete_all(cls, force: bool = False) -> AppDeleteAllResponseDTO:
         count = await cls.count().run()
-        res = await cls.delete(force=True).run()
+        res = await cls.delete(force).run()
         logger.info(f"Deleted {count} items.")
         return AppDeleteAllResponseDTO(count=count)
 

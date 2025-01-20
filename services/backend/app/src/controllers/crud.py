@@ -124,6 +124,7 @@ def generate_crud_controller(
         "/{id:int}",
         description=f"Delete a {Model.humanise()} by id.",
         exclude_from_auth=exclude_from_auth,
+        status_code=status_codes.HTTP_204_NO_CONTENT,
     )
     async def delete_one(
         self,
@@ -243,6 +244,7 @@ def generate_crud_controller(
         "/",
         description=f"Delete all {Model.humanise_plural()}.",
         exclude_from_auth=exclude_from_auth,
+        status_code=status_codes.HTTP_204_NO_CONTENT,
     )
     async def delete_all(
         self,
