@@ -3,6 +3,7 @@
 A dockerised starter stack containing the following components:
 
 * [LiteStar](https://litestar.dev/) backend
+* [Granian Server](https://github.com/emmett-framework/granian) via [https://github.com/cofin/litestar-granian](https://github.com/cofin/litestar-granian)
 * [Postgres](https://www.postgresql.org/) database
 * [Piccolo ORM](https://piccolo-orm.readthedocs.io/en/latest/#) (Async)
 * [Msgspec](https://jcristharif.com/msgspec/) Validations

@@ -292,6 +292,22 @@ class AppModel(
         return f"v({", ".join(cls.UpdateWithIdDTOClass.__struct_fields__)})"
 
     @classmethod
+    def escape_string(cls, s: str) -> str:
+        if isinstance(s, str):
+            return f"'{s.replace("'", "''")}'"
+        return s
+
+    @classmethod
+    def as_raw_sql_update_value(cls, dto: UpdateWithIdDTOClassType) -> str:
+        return f"({', '.join(
+            [
+                f"{cls.escape_string(v)}"
+                if v is not None else 'NULL'
+                for v in dto.dict_ordered().values()
+            ]
+        )})"
+
+    @classmethod
     async def update_many_with_id(
         cls, dtos: list[UpdateWithIdDTOClassType]
     ) -> AppBulkActionResultDTO:
@@ -316,7 +332,7 @@ class AppModel(
         # Do in batches
         for i in range(0, len(dtos), batch_size):
             idx_end = cls._get_batch_idx_end(i, batch_size, len(dtos))
-            vals = ",\n".join([v.as_raw_sql_update_value() for v in dtos[i:idx_end]])
+            vals = ",\n".join([cls.as_raw_sql_update_value(v) for v in dtos[i:idx_end]])
             q = f"""
             UPDATE {cls._meta.tablename} AS t
             SET

@@ -3,7 +3,6 @@ from typing import Annotated
 from functools import lru_cache
 
 from msgspec import Struct, Meta, structs
-from piccolo.querystring import QueryString
 
 
 StringShort = Annotated[str, Meta(max_length=256)]
@@ -47,22 +46,6 @@ class AppUpdateWithIdDTO(AppDTO):
     @classmethod
     def update_as_columns_clause(cls) -> str:
         return ", ".join([f for f in cls.__struct_fields__])
-
-    # TODO: Use proper SQL escaping
-    @classmethod
-    def escape_string(cls, s: str) -> str:
-        if isinstance(s, str):
-            return f"'{s.replace("'", "''")}'"
-        return s
-
-    def as_raw_sql_update_value(self):
-        return f"({', '.join(
-            [
-                f"{self.escape_string(v)}"
-                if v is not None else 'NULL'
-                for v in self.dict_ordered().values()
-            ]
-        )})"
 
 
 class AppReadAllPaginationDetailsDTO(AppDTO):
