@@ -6,7 +6,6 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "loguru>=0.7.3",
-    "uvicorn>=0.34.0",
     "litestar-granian>=0.8.0",
     "piccolo[postgres]>=1.22.0",
     "inflection>=0.5.1",
