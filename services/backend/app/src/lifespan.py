@@ -7,36 +7,24 @@ from litestar import Litestar
 from src.logging.service import logger
 
 
-_ON_INIT = []
-
-
+ON_INIT = []
 def register_on_init(func):
-    _ON_INIT.append(func)
-    return func
+    ON_INIT.append(func)
 
 
-_ON_STARTUP = []
-
-
+ON_STARTUP = []
 def register_on_startup(func):
-    _ON_STARTUP.append(func)
-    return func
+    ON_STARTUP.append(func)
 
 
-_MIDDLEWARE = []
-
-
+MIDDLEWARE = []
 def register_middleware(func):
-    _MIDDLEWARE.append(func)
-    return func
+    MIDDLEWARE.append(func)
 
 
-_ON_SHUTDOWN = []
-
-
+ON_SHUTDOWN = []
 def register_on_shutdown(func):
-    _ON_SHUTDOWN.append(func)
-    return func
+    ON_SHUTDOWN.append(func)
 
 
 async def _run_func(func: Callable):
@@ -51,11 +39,11 @@ async def _run_func(func: Callable):
 @asynccontextmanager
 async def lifespan(app: Litestar) -> AsyncGenerator[None, None]:
     # Startup
-    for startup in _ON_STARTUP:
+    for startup in ON_STARTUP:
         logger.info(f"Running startup: {startup.__name__}")
         await _run_func(startup)
     yield
     # Shutdown
-    for shutdown in _ON_SHUTDOWN:
+    for shutdown in ON_SHUTDOWN:
         logger.info(f"Running shutdown: {shutdown.__name__}")
         await _run_func(shutdown)

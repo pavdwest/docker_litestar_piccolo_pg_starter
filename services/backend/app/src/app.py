@@ -14,7 +14,7 @@ from litestar_granian import GranianPlugin
 from src.config import PROJECT_NAME
 from src.versions import AppVersion
 from src.controllers.all import CONTROLLERS
-from src.lifespan import _ON_INIT, _MIDDLEWARE
+from src.lifespan import ON_INIT, MIDDLEWARE
 
 
 def create_app(lifespan: Sequence) -> Litestar:
@@ -33,8 +33,8 @@ def create_app(lifespan: Sequence) -> Litestar:
             ],
         ),
         plugins=[GranianPlugin()],
-        on_app_init=_ON_INIT,
-        middleware=_MIDDLEWARE,
+        on_app_init=ON_INIT,
+        middleware=MIDDLEWARE,
         route_handlers=CONTROLLERS.get_all(),
         debug=True,
     )
