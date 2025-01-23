@@ -83,7 +83,7 @@ class AppModel(
 
     @classmethod
     async def max_id(cls) -> int:
-        return (await cls.select(Max(cls.id)).first().run())["max"]
+        return (await cls.select(Max(cls.id)).first().run())["max"] or 0
 
     @classmethod
     async def create_one(cls, dto: CreateDTOClassType) -> ReadDTOClassType:
@@ -403,7 +403,8 @@ class AppModel(
 
     @classmethod
     async def delete_one(cls, id: int) -> None:
-        await cls.delete().where(cls.id == id).run()
+        if await cls.read_one(id) is not None:
+            await cls.delete().where(cls.id == id).run()
 
     @classmethod
     async def delete_all(cls, force: bool = False) -> AppDeleteAllResponseDTO:

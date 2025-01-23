@@ -159,6 +159,11 @@ def generate_crud_controller(
         offset: NonNegativeInt = 0,
         limit: PositiveInt = read_all_limit_default,
     ) -> list[ReadDTO]:  # type: ignore
+
+        res = await Model.max_id()
+        from src.logging.service import logger
+        logger.warning(res)
+
         items = await Model.read_all(
             offset=offset,
             limit=min(limit, read_all_limit_max)
