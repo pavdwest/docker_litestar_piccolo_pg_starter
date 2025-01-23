@@ -11,7 +11,6 @@ from src.modules.note.models import Note
 Model = Note
 
 
-@pytest.mark.asyncio(loop_scope="session")
 async def test_create_one(client: AsyncClient):
     response = await client.post(
         f"{ApiVersion.V1}/{Model._meta.tablename}",
@@ -36,7 +35,6 @@ async def test_create_one(client: AsyncClient):
     assert db_item.rating == 5
 
 
-@pytest.mark.asyncio(loop_scope="session")
 async def test_create_one_raises_error_for_duplicate(client: AsyncClient):
     item = Note(
         title="test_create_one_raises_error_for_duplicate_title",
@@ -61,7 +59,6 @@ async def test_create_one_raises_error_for_duplicate(client: AsyncClient):
     }
 
 
-@pytest.mark.asyncio(loop_scope="session")
 async def test_read_one(client: AsyncClient):
     item = Note(
         title="test_read_note_title",
@@ -82,7 +79,6 @@ async def test_read_one(client: AsyncClient):
     assert datetime.fromisoformat(item["updated_at"])
 
 
-@pytest.mark.asyncio(loop_scope="session")
 async def test_read_one_raises_error_if_not_exists(client: AsyncClient):
     # Get max id in db
     max_id = await Note.max_id()
@@ -99,7 +95,6 @@ async def test_read_one_raises_error_if_not_exists(client: AsyncClient):
     }
 
 
-@pytest.mark.asyncio(loop_scope="session")
 async def test_update_one(client: AsyncClient):
     item = Note(
         title="test_update_note_title",
@@ -132,7 +127,6 @@ async def test_update_one(client: AsyncClient):
     assert db_item.rating == 4
 
 
-@pytest.mark.asyncio(loop_scope="session")
 async def test_update_one_allows_partial(client: AsyncClient):
     item = Note(
         title="test_update_one_allows_partial_title",
@@ -164,7 +158,6 @@ async def test_update_one_allows_partial(client: AsyncClient):
     assert db_item.rating == 4
 
 
-@pytest.mark.asyncio(loop_scope="session")
 async def test_upsert_one_create_new(client: AsyncClient):
     # Verify that the item does not exist
     assert not await Note.exists().where(
@@ -196,7 +189,6 @@ async def test_upsert_one_create_new(client: AsyncClient):
     assert db_item.rating == 5
 
 
-@pytest.mark.asyncio(loop_scope="session")
 async def test_upsert_one_update(client: AsyncClient):
     item = Note(
         title="test_upsert_one_update_title",
@@ -229,7 +221,6 @@ async def test_upsert_one_update(client: AsyncClient):
     assert db_item.rating == 4
 
 
-@pytest.mark.asyncio(loop_scope="session")
 async def test_delete_one(client: AsyncClient):
     item = Note(
         title="test_delete_note_title",
@@ -244,7 +235,6 @@ async def test_delete_one(client: AsyncClient):
     assert not await Note.exists().where(Note.id == item.id)
 
 
-@pytest.mark.asyncio(loop_scope="session")
 async def test_read_count(client: AsyncClient):
     # Delete all items
     await Note.delete_all(force=True)
@@ -266,7 +256,6 @@ async def test_read_count(client: AsyncClient):
     assert response.json() == 2
 
 
-@pytest.mark.asyncio(loop_scope="session")
 async def test_read_all(client: AsyncClient):
     # Delete all items
     await Note.delete_all(force=True)
@@ -305,7 +294,6 @@ async def test_read_all(client: AsyncClient):
         assert datetime.fromisoformat(item["updated_at"])
 
 
-@pytest.mark.asyncio(loop_scope="session")
 async def test_create_many(client: AsyncClient):
     # Delete all items
     await Note.delete_all(force=True)
@@ -342,7 +330,6 @@ async def test_create_many(client: AsyncClient):
     assert db_item2.rating == item2["rating"]
 
 
-@pytest.mark.asyncio(loop_scope="session")
 async def test_create_many_raises_error_for_duplicate(client: AsyncClient):
     # Delete all items
     await Note.delete_all(force=True)
@@ -373,7 +360,6 @@ async def test_create_many_raises_error_for_duplicate(client: AsyncClient):
     }
 
 
-@pytest.mark.asyncio(loop_scope="session")
 async def test_update_many(client: AsyncClient):
     # Delete all items
     await Note.delete_all(force=True)
@@ -429,7 +415,6 @@ async def test_update_many(client: AsyncClient):
     assert db_item2.rating == item2_update["rating"]
 
 
-@pytest.mark.asyncio(loop_scope="session")
 async def test_upsert_many_create_new(client: AsyncClient):
     # Delete all items
     await Note.delete_all(force=True)
@@ -466,7 +451,6 @@ async def test_upsert_many_create_new(client: AsyncClient):
     assert db_item2.rating == item2["rating"]
 
 
-@pytest.mark.asyncio(loop_scope="session")
 async def test_upsert_many_create_one_update_one(client: AsyncClient):
     # Delete all items
     await Note.delete_all(force=True)
@@ -515,7 +499,6 @@ async def test_upsert_many_create_one_update_one(client: AsyncClient):
     assert db_item2.rating == item2["rating"]
 
 
-@pytest.mark.asyncio(loop_scope="session")
 async def test_delete_all(client: AsyncClient):
     await Note.delete_all(force=True)
 

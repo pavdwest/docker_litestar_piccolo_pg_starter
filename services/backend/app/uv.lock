@@ -54,7 +54,7 @@ requires-dist = [
     { name = "piccolo", extras = ["postgres"], specifier = ">=1.22.0" },
     { name = "psycopg2-binary", specifier = ">=2.9.10" },
     { name = "pytest", specifier = ">=8.3.4" },
-    { name = "pytest-asyncio", specifier = ">=0.25.0" },
+    { name = "pytest-asyncio", specifier = ">=0.25.2" },
     { name = "sqlalchemy-utils", specifier = ">=0.41.2" },
 ]
 

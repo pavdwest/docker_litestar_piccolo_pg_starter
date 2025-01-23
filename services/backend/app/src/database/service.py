@@ -8,7 +8,6 @@ from src.logging.service import logger
 from src.database.exceptions import DatabaseNotFoundException
 from src.database.models import DatabaseBind
 from src.models.all import MODELS
-from src.lifespan import register_on_startup, register_on_shutdown
 
 
 class DatabaseService:
@@ -26,6 +25,7 @@ class DatabaseService:
         database_bind: DatabaseBind,
         retry_count: int = RETRY_COUNT_DEFAULT,
         retry_delay: float = RETRY_DELAY_DEFAULT,
+        use_pool: bool = True,
     ) -> None:
         """
         Initialize the database service with the given database bind.
@@ -33,15 +33,12 @@ class DatabaseService:
         self.DATABASE_BIND = database_bind
         self._retry_count = retry_count
         self._retry_delay = retry_delay
+        self.use_pool = use_pool
 
         # Shared DB
         self.create_db(self.DATABASE_BIND, self._retry_count, self._retry_delay)
         self.DATABASE = self.init_engine(self.DATABASE_BIND)
         self.create_tables(self.DATABASE)
-
-        # Lifecycle Callbacks
-        register_on_startup(self.start_connections)
-        register_on_shutdown(self.close_connections)
 
     @classmethod
     def create_db(
@@ -97,20 +94,22 @@ class DatabaseService:
             Model._meta.db = engine
             Model.create_table(if_not_exists=True).run_sync()
 
-    async def start_connections(self) -> None:
-        """
-        Start the database connection pools.
-        """
-        logger.info("Starting database engine pools...")
-        await self.DATABASE.start_connection_pool()
+    @classmethod
+    async def open_engine_pool(cls, engine: PostgresEngine) -> None:
+        await engine.start_connection_pool()
 
-    async def close_connections(self) -> None:
-        """
-        Close the database connection pools.
-        """
-        logger.info("Shutting down database engines...")
-        if self.DATABASE.pool:
-            await self.DATABASE.close_connection_pool()
+    @classmethod
+    async def close_engine_pool(cls, engine: PostgresEngine) -> None:
+        if engine.pool:
+            await engine.close_connection_pool()
+
+    async def open_connection_pools(self) -> None:
+        if self.use_pool:
+            await self.open_engine_pool(self.DATABASE)
+
+    async def close_connection_pools(self) -> None:
+        if self.use_pool:
+            await self.close_engine_pool(self.DATABASE)
 
 
 db = DatabaseService()

@@ -1,8 +1,5 @@
-from contextlib import asynccontextmanager
-
+import pytest
 from litestar.testing.client.async_client import AsyncTestClient
-import pytest_asyncio
-from litestar import Litestar
 from sqlalchemy_utils import drop_database, database_exists
 
 from src.logging.service import logger
@@ -10,15 +7,7 @@ from src import config
 from src.database.models import DatabaseBind
 from src.database.service import db
 from src.app import create_app
-
-
-# App Lifespan manager
-@asynccontextmanager
-async def lifespan(app: Litestar):
-    logger.info('Startup...')
-    yield
-    logger.info('Shutdown...')
-    await db.shutdown()
+from src.lifespan import lifespan
 
 
 def init_db():
@@ -30,17 +19,19 @@ def init_db():
         password=config.DATABASE_HOST_PASSWORD,
         port=config.DATABASE_HOST_PORT,
     )
-    # Drop db before tests. Will be recreated in `db.init()`
+    # Drop db before tests. DB Service will create it again.
     if database_exists(test_db_bind.url_sync):
         logger.info(f"Dropping test database: {test_db_name}...")
         drop_database(test_db_bind.url_sync)
-    db.init(test_db_bind)
+
+    # Can't use connection pool in tests, causes eventloop issues
+    db.init(test_db_bind, use_pool=False)
 
 
-@pytest_asyncio.fixture(scope='session')
+@pytest.fixture(scope='session')
 def app():
     init_db()
-    app = create_app(lifespan=[])
+    app = create_app(lifespan=[lifespan])
     yield app
 
 
@@ -67,7 +58,7 @@ def app():
 #     return login
 
 
-@pytest_asyncio.fixture(scope='session')
+@pytest.fixture(scope='session')
 async def client(app):
     async with AsyncTestClient(app) as c:
         yield c
