@@ -1,4 +1,3 @@
-import pytest
 from datetime import datetime
 
 from httpx import AsyncClient
@@ -91,7 +90,7 @@ async def test_read_one_raises_error_if_not_exists(client: AsyncClient):
     assert response.status_code == status_codes.HTTP_404_NOT_FOUND
     assert response.json() == {
         "status_code": 404,
-        "detail": f"Item with id='{not_exist_id}' not found.",
+        "detail": f"Note with id='{not_exist_id}' not found.",
     }
 
 

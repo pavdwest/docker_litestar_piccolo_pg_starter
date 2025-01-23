@@ -23,7 +23,7 @@ from src.dtos import (
     AppDeleteAllResponseDTO,
 )
 from asyncpg.exceptions import UniqueViolationError
-from src.models.exceptions import NotFoundException, UniquenessException
+from src.models.exceptions import NotFoundException, ConflictException
 
 
 class OnConflictAction(StrEnum):
@@ -93,13 +93,13 @@ class AppModel(
             await item.refresh()
             return cls.ReadDTOClass(**item.to_dict())
         except UniqueViolationError as e:
-            raise UniquenessException(str(e))
+            raise ConflictException(str(e))
 
     @classmethod
     async def read_one(cls, id: int) -> ReadDTOClassType:
         item = await cls.select().where(cls.id == id).first().run()
         if item is None:
-            raise NotFoundException.from_id(id)
+            raise NotFoundException.from_id(id, cls)
         return cls.ReadDTOClass(**item)
 
     @classmethod
@@ -373,7 +373,7 @@ class AppModel(
                 ids=[r["id"] for r in [r for batch in batch_res for r in batch]]
             )
         except UniqueViolationError as e:
-            raise UniquenessException(str(e))
+            raise ConflictException(str(e))
 
     @classmethod
     async def upsert_many(
@@ -383,23 +383,27 @@ class AppModel(
         batch_res = []
         batch_number = 1
 
-        start = time.monotonic()
-        for i in range(0, len(dtos), batch_size):
-            idx_end = cls._get_batch_idx_end(i, batch_size, len(dtos))
-            batch_items = dtos[i:idx_end]
-            q = cls._add_on_conflict_params(
-                cls.insert(*[cls(**i.dict()) for i in batch_items])
-            ).run()
-            batch_res.append(await q)
-            logger.info(
-                f"Batch {batch_number} size {len(batch_items)}: items idx={i} to idx={i+len(batch_items)-1} inserted."
-            )
-            batch_number += 1
-        logger.info(f"Time taken: {time.monotonic() - start} seconds.")
+        # TODO: Concat all exceptions into batch
+        try:
+            start = time.monotonic()
+            for i in range(0, len(dtos), batch_size):
+                idx_end = cls._get_batch_idx_end(i, batch_size, len(dtos))
+                batch_items = dtos[i:idx_end]
+                q = cls._add_on_conflict_params(
+                    cls.insert(*[cls(**i.dict()) for i in batch_items])
+                ).run()
+                batch_res.append(await q)
+                logger.info(
+                    f"Batch {batch_number} size {len(batch_items)}: items idx={i} to idx={i+len(batch_items)-1} inserted."
+                )
+                batch_number += 1
+            logger.info(f"Time taken: {time.monotonic() - start} seconds.")
 
-        return AppBulkActionResultDTO(
-            ids=[r["id"] for r in [r for batch in batch_res for r in batch]]
-        )
+            return AppBulkActionResultDTO(
+                ids=[r["id"] for r in [r for batch in batch_res for r in batch]]
+            )
+        except UniqueViolationError as e:
+            raise ConflictException(str(e))
 
     @classmethod
     async def delete_one(cls, id: int) -> None:

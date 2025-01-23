@@ -1,9 +1,7 @@
 from typing import Annotated
 
-from asyncpg import UniqueViolationError
 from inflection import pluralize
 from litestar import post, get, patch, put, delete
-from litestar.exceptions import HTTPException
 from litestar import status_codes
 from pydantic import NonNegativeInt, Field, PositiveInt
 
@@ -17,7 +15,6 @@ from src.dtos import (
     AppBulkActionResultDTO,
     AppReadAllPaginationDetailsDTO,
 )
-from src.models.exceptions import NotFoundException, UniquenessException
 
 
 class CrudController(AppController): ...
@@ -54,10 +51,7 @@ def generate_crud_controller(
         self,
         data: CreateDTO,  # type: ignore
     ) -> ReadDTO:  # type: ignore
-        try:
             return await Model.create_one(data)
-        except UniquenessException as e:
-            raise e.http_exception()
     setattr(controller_class, "create_one", create_one)
 
     @get(
@@ -69,11 +63,8 @@ def generate_crud_controller(
         self,
         id: Annotated[int, Field(gt=0)],
     ) -> ReadDTO:  # type: ignore
-        try:
-            item = await Model.read_one(id)
-            return item
-        except NotFoundException as e:
-            raise e.http_exception()
+        item = await Model.read_one(id)
+        return item
     setattr(controller_class, "read_one", read_one)
 
     @patch(
@@ -181,10 +172,7 @@ def generate_crud_controller(
         self,
         data: list[CreateDTO],  # type: ignore
     ) -> AppBulkActionResultDTO:
-        try:
-            return await Model.create_many(data)
-        except UniquenessException as e:
-            raise e.http_exception()
+        return await Model.create_many(data)
     setattr(controller_class, "create_many", create_many)
 
     @patch(
@@ -214,13 +202,7 @@ def generate_crud_controller(
         self,
         data: list[CreateDTO],  # type: ignore
     ) -> AppBulkActionResultDTO:
-        try:
-            return await Model.upsert_many(data)
-        except UniqueViolationError as e:
-            raise HTTPException(
-                status_code=status_codes.HTTP_409_CONFLICT,
-                detail=str(e),
-            )
+        return await Model.upsert_many(data)
     setattr(controller_class, "upsert_many", upsert_many)
 
     # @delete(
