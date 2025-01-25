@@ -35,21 +35,19 @@ async def test_create_one(client: AsyncClient):
 
 
 async def test_create_one_raises_error_for_duplicate(client: AsyncClient):
-    item = Note(
-        title="test_create_one_raises_error_for_duplicate_title",
-        body="test_create_one_raises_error_for_duplicate_body",
-        rating=5,
-    )
+    data = {
+        "title": "test_create_one_raises_error_for_duplicate_title",
+        "body": "test_create_one_raises_error_for_duplicate_body",
+        "rating": 5,
+    }
+
+    item = Note(**data)
     await item.save()
     await item.refresh()
 
     response = await client.post(
         f"{ApiVersion.V1}/{Model._meta.tablename}",
-        json={
-            "title": "test_create_one_raises_error_for_duplicate_title",
-            "body": "test_create_one_raises_error_for_duplicate_body",
-            "rating": 5,
-        },
+        json=data,
     )
     assert response.status_code == status_codes.HTTP_409_CONFLICT
     assert response.json() == {

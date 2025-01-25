@@ -18,11 +18,3 @@ class ConflictException(HTTPException, AppException):
     """Exception for conflict errors like uniqueness constraints."""
 
     status_code = status_codes.HTTP_409_CONFLICT
-
-
-class UniquenessException(HTTPException, AppException):
-    def http_exception(self):
-        raise HTTPException(
-            status_code=status_codes.HTTP_409_CONFLICT,
-            detail=str(self),
-        )
