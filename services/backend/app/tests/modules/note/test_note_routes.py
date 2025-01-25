@@ -8,11 +8,12 @@ from src.modules.note.models import Note
 
 
 Model = Note
+endpoint = f"{ApiVersion.V1}/{Model._meta.tablename}"
 
 
 async def test_create_one(client: AsyncClient):
     response = await client.post(
-        f"{ApiVersion.V1}/{Model._meta.tablename}",
+        endpoint,
         json={
             "title": "test_create_note_title",
             "body": "test_create_note_body",
@@ -46,7 +47,7 @@ async def test_create_one_raises_error_for_duplicate(client: AsyncClient):
     await item.refresh()
 
     response = await client.post(
-        f"{ApiVersion.V1}/{Model._meta.tablename}",
+        endpoint,
         json=data,
     )
     assert response.status_code == status_codes.HTTP_409_CONFLICT
@@ -65,7 +66,7 @@ async def test_read_one(client: AsyncClient):
     await item.save()
     await item.refresh()
 
-    response = await client.get(f"{ApiVersion.V1}/{Model._meta.tablename}/{item.id}")
+    response = await client.get(f"{endpoint}/{item.id}")
     assert response.status_code == status_codes.HTTP_200_OK
     item = response.json()
     assert isinstance(item["id"], int)
@@ -83,7 +84,7 @@ async def test_read_one_raises_error_if_not_exists(client: AsyncClient):
     assert not await Note.exists().where(Note.id == not_exist_id)
 
     response = await client.get(
-        f"{ApiVersion.V1}/{Model._meta.tablename}/{not_exist_id}"
+        f"{endpoint}/{not_exist_id}"
     )
     assert response.status_code == status_codes.HTTP_404_NOT_FOUND
     assert response.json() == {
@@ -102,7 +103,7 @@ async def test_update_one(client: AsyncClient):
     await item.refresh()
 
     response = await client.patch(
-        f"{ApiVersion.V1}/{Model._meta.tablename}/{item.id}",
+        f"{endpoint}/{item.id}",
         json={
             "title": "test_update_note_title_updated",
             "body": "test_update_note_body_updated",
@@ -134,7 +135,7 @@ async def test_update_one_allows_partial(client: AsyncClient):
     await item.refresh()
 
     response = await client.patch(
-        f"{ApiVersion.V1}/{Model._meta.tablename}/{item.id}",
+        f"{endpoint}/{item.id}",
         json={
             "body": "test_update_one_allows_partial_body_updated",
             "rating": 4,
@@ -164,7 +165,7 @@ async def test_upsert_one_create_new(client: AsyncClient):
     )
 
     response = await client.put(
-        f"{ApiVersion.V1}/{Model._meta.tablename}",
+        endpoint,
         json={
             "title": "test_upsert_one_create_new_title",
             "body": "test_upsert_one_create_new_body",
@@ -196,7 +197,7 @@ async def test_upsert_one_update(client: AsyncClient):
     await item.refresh()
 
     response = await client.put(
-        f"{ApiVersion.V1}/{Model._meta.tablename}",
+        endpoint,
         json={
             "title": "test_upsert_one_update_title",
             "body": "test_upsert_one_update_body_new",
@@ -227,7 +228,7 @@ async def test_delete_one(client: AsyncClient):
     await item.save()
     await item.refresh()
 
-    response = await client.delete(f"{ApiVersion.V1}/{Model._meta.tablename}/{item.id}")
+    response = await client.delete(f"{endpoint}/{item.id}")
     assert response.status_code == status_codes.HTTP_204_NO_CONTENT
     assert not await Note.exists().where(Note.id == item.id)
 
@@ -248,7 +249,7 @@ async def test_read_count(client: AsyncClient):
         await item.refresh()
         items.append(item)
 
-    response = await client.get(f"{ApiVersion.V1}/{Model._meta.tablename}/count")
+    response = await client.get(f"{endpoint}/count")
     assert response.status_code == status_codes.HTTP_200_OK
     assert response.json() == 2
 
@@ -270,7 +271,7 @@ async def test_read_all(client: AsyncClient):
         items.append(item)
 
     response = await client.get(
-        f"{ApiVersion.V1}/{Model._meta.tablename}",
+        endpoint,
         params={
             "offset": 0,
             "limit": 10,
@@ -307,7 +308,7 @@ async def test_create_many(client: AsyncClient):
     }
 
     response = await client.post(
-        f"{ApiVersion.V1}/{Model._meta.tablename}/many", json=[item1, item2]
+        f"{endpoint}/many", json=[item1, item2]
     )
 
     assert response.status_code == status_codes.HTTP_201_CREATED
@@ -348,7 +349,7 @@ async def test_create_many_raises_error_for_duplicate(client: AsyncClient):
     }
 
     response = await client.post(
-        f"{ApiVersion.V1}/{Model._meta.tablename}/many", json=[item1, item2]
+        f"{endpoint}/many", json=[item1, item2]
     )
     assert response.status_code == status_codes.HTTP_409_CONFLICT
     assert response.json() == {
@@ -392,7 +393,7 @@ async def test_update_many(client: AsyncClient):
     }
 
     response = await client.patch(
-        f"{ApiVersion.V1}/{Model._meta.tablename}/many", json=[item1_update, item2_update]
+        f"{endpoint}/many", json=[item1_update, item2_update]
     )
 
     assert response.status_code == status_codes.HTTP_200_OK
@@ -428,7 +429,7 @@ async def test_upsert_many_create_new(client: AsyncClient):
     }
 
     response = await client.put(
-        f"{ApiVersion.V1}/{Model._meta.tablename}/many", json=[item1, item2]
+        f"{endpoint}/many", json=[item1, item2]
     )
 
     assert response.status_code == status_codes.HTTP_201_CREATED
@@ -476,7 +477,7 @@ async def test_upsert_many_create_one_update_one(client: AsyncClient):
 
     # Call upsert_many with item1 and item2
     response = await client.put(
-        f"{ApiVersion.V1}/{Model._meta.tablename}/many", json=[item1_update, item2]
+        f"{endpoint}/many", json=[item1_update, item2]
     )
 
     assert response.status_code == status_codes.HTTP_201_CREATED
@@ -514,6 +515,6 @@ async def test_delete_all(client: AsyncClient):
     assert await Note.count() == 2
 
     # Call delete_all
-    response = await client.delete(f"{ApiVersion.V1}/{Model._meta.tablename}")
+    response = await client.delete(endpoint)
     assert response.status_code == status_codes.HTTP_204_NO_CONTENT
     assert await Note.count() == 0
