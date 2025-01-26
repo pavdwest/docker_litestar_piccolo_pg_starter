@@ -1,7 +1,5 @@
 from typing import Any, Optional
 from enum import StrEnum
-from functools import lru_cache
-from pydantic import computed_field
 
 from src.dtos import AppDTO
 
@@ -17,7 +15,6 @@ class DatabaseBind(AppDTO):
     password: str
     port: Optional[str | int] = 5432
 
-    @computed_field
     @property
     def piccolo_config(self) -> dict[str, Any]:
         return {
@@ -28,12 +25,14 @@ class DatabaseBind(AppDTO):
             "port": self.port,
         }
 
-    @computed_field
+    @classmethod
+    def connection_url(cls, host: str, name: str, username: str, password: str, sync: bool = False, port: Optional[str | int] = 5432) -> str:
+        return f"{cls.DatabaseDriver.SYNC if sync else cls.DatabaseDriver.ASYNC}://{username}:{password}@{host}:{port}/{name}"
+
     @property
     def url_sync(self) -> str:
-        return f"{self.DatabaseDriver.SYNC.value}://{self.username}:{self.password}@{self.host}:{self.port}/{self.name}"
+        return self.connection_url(self.host, self.name, self.username, self.password, sync=True, port=self.port)
 
-    @computed_field
     @property
     def url_async(self) -> str:
-        return f"{self.DatabaseDriver.ASYNC.value}://{self.username}:{self.password}@{self.host}:{self.port}/{self.name}"
+        return self.connection_url(self.host, self.name, self.username, self.password, sync=False, port=self.port)
