@@ -125,6 +125,27 @@ async def test_update_one(client: AsyncClient):
     assert db_item.rating == 4
 
 
+async def test_update_one_raises_error_if_not_exists(client: AsyncClient):
+    # Get max id in db
+    max_id = await Note.max_id()
+    not_exist_id = max_id + 1
+    assert not await Note.exists().where(Note.id == not_exist_id)
+
+    response = await client.patch(
+        f"{ApiVersion.V1}/{Model._meta.tablename}/{not_exist_id}",
+        json={
+            "title": "test_update_note_title_updated",
+            "body": "test_update_note_body_updated",
+            "rating": 4,
+        },
+    )
+    assert response.status_code == status_codes.HTTP_404_NOT_FOUND
+    assert response.json() == {
+        "status_code": 404,
+        "detail": f"Note with id='{not_exist_id}' not found.",
+    }
+
+
 async def test_update_one_allows_partial(client: AsyncClient):
     item = Note(
         title="test_update_one_allows_partial_title",

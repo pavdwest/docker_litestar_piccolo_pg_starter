@@ -115,7 +115,7 @@ class AppModel(
     async def update_one(cls, id: int, dto: UpdateDTOClassType) -> ReadDTOClassType:
         item = await cls.objects().where(cls.id == id).first().run()
         if item is None:
-            raise NotFoundException.from_id(id)
+            raise NotFoundException.from_id(id, cls)
         await item.update_self(dto.dict_without_unset()).run()
         return cls.ReadDTOClass(**item.to_dict())
 

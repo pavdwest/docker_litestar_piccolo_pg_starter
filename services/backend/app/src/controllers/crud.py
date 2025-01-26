@@ -77,10 +77,7 @@ def generate_crud_controller(
         id: Annotated[int, Field(gt=0)],
         data: UpdateDTO,  # type: ignore
     ) -> ReadDTO:  # type: ignore
-        try:
-            return await Model.update_one(id, data)
-        except NotFoundException as e:
-            raise e.http_exception()
+        return await Model.update_one(id, data)
     setattr(controller_class, "update_one", update_one)
 
     @patch(
@@ -92,10 +89,7 @@ def generate_crud_controller(
         self,
         data: UpdateWithIdDTO,  # type: ignore
     ) -> ReadDTO:  # type: ignore
-        try:
-            return await Model.update_one_with_id(data)
-        except NotFoundException as e:
-            raise e.http_exception()
+        return await Model.update_one_with_id(data)
     setattr(controller_class, "update_one_with_id", update_one_with_id)
 
     @put(
@@ -121,10 +115,7 @@ def generate_crud_controller(
         self,
         id: Annotated[int, Field(gt=0)],
     ) -> None:
-        try:
-            await Model.delete_one(id)
-        except NotFoundException as e:
-            raise e.http_exception()
+        await Model.delete_one(id)
     setattr(controller_class, "delete_one", delete_one)
 
     @get(
@@ -185,10 +176,7 @@ def generate_crud_controller(
         self,
         data: list[UpdateWithIdDTO],  # type: ignore
     ) -> AppBulkActionResultDTO:
-        try:
-            return await Model.update_many_with_id(data)
-        except NotFoundException as e:
-            raise e.http_exception()
+        return await Model.update_many_with_id(data)
     setattr(controller_class, "update_many_with_id", update_many_with_id)
 
     @put(
