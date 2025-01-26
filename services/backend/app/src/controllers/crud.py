@@ -1,9 +1,10 @@
-from typing import Annotated
-
+from asyncpg import UniqueViolationError
 from inflection import pluralize
 from litestar import post, get, patch, put, delete
 from litestar import status_codes
-from pydantic import NonNegativeInt, Field, PositiveInt
+from litestar.exceptions import HTTPException
+from msgspec import Struct
+from litestar.openapi import ResponseSpec
 
 from src.models.base import AppModel
 from src.controllers.base import AppController
@@ -14,7 +15,12 @@ from src.dtos import (
     AppUpdateWithIdDTO,
     AppBulkActionResultDTO,
     AppReadAllPaginationDetailsDTO,
+    IntID,
+    IntPositive,
+    IntNonNegative,
+    IntMaxLimit,
 )
+from src.response_specs import ConflictResponse
 
 
 class CrudController(AppController): ...
@@ -41,17 +47,30 @@ def generate_crud_controller(
     controller_class.tags = [Model.humanise()]
     many_endpoints_path = "/many"
 
+    # ResponseSpecs
+    ConflictResponseClass = type(f"{Model}ConflictResponse", (Struct,), {})
+    ConflictResponseClass.status_code = status_codes.HTTP_409_CONFLICT
+    ConflictResponseClass.detail = f"Duplicate key error on key ({Model._meta.primary_key})."
+
+
+    # Routes
     @post(
         "/",
         description=f"Create a {Model.humanise()}.",
         exclude_from_auth=exclude_from_auth,
         status_code=status_codes.HTTP_201_CREATED,
+        responses={
+            status_codes.HTTP_409_CONFLICT: ResponseSpec(
+                data_container=ConflictResponse,
+                description=f"Cannot create a {Model.humanise()} because one with the same primary key already exists.",
+            )
+        },
     )
     async def create_one(
         self,
         data: CreateDTO,  # type: ignore
     ) -> ReadDTO:  # type: ignore
-            return await Model.create_one(data)
+        return await Model.create_one(data)
     setattr(controller_class, "create_one", create_one)
 
     @get(
@@ -61,7 +80,7 @@ def generate_crud_controller(
     )
     async def read_one(
         self,
-        id: Annotated[int, Field(gt=0)],
+        id: IntID,
     ) -> ReadDTO:  # type: ignore
         item = await Model.read_one(id)
         return item
@@ -74,7 +93,7 @@ def generate_crud_controller(
     )
     async def update_one(
         self,
-        id: Annotated[int, Field(gt=0)],
+        id: IntID,
         data: UpdateDTO,  # type: ignore
     ) -> ReadDTO:  # type: ignore
         return await Model.update_one(id, data)
@@ -113,7 +132,7 @@ def generate_crud_controller(
     )
     async def delete_one(
         self,
-        id: Annotated[int, Field(gt=0)],
+        id: IntID,
     ) -> None:
         await Model.delete_one(id)
     setattr(controller_class, "delete_one", delete_one)
@@ -138,8 +157,8 @@ def generate_crud_controller(
     )
     async def read_all(
         self,
-        offset: NonNegativeInt = 0,
-        limit: PositiveInt = read_all_limit_default,
+        offset: IntNonNegative = 0,
+        limit: IntMaxLimit = read_all_limit_default,
     ) -> list[ReadDTO]:  # type: ignore
         items = await Model.read_all(
             offset=offset,
@@ -190,7 +209,13 @@ def generate_crud_controller(
         self,
         data: list[CreateDTO],  # type: ignore
     ) -> AppBulkActionResultDTO:
-        return await Model.upsert_many(data)
+        try:
+            return await Model.upsert_many(data)
+        except UniqueViolationError as e:
+            raise HTTPException(
+                status_code=status_codes.HTTP_409_CONFLICT,
+                detail=str(e),
+            )
     setattr(controller_class, "upsert_many", upsert_many)
 
     # @delete(

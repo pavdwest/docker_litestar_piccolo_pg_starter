@@ -2,13 +2,17 @@ from datetime import datetime
 from typing import Annotated
 from functools import lru_cache
 
-from msgspec import Struct, Meta, structs
+from litestar.params import Parameter
+from msgspec import Struct, structs
 
 
-StringShort = Annotated[str, Meta(max_length=256)]
-StringLong = Annotated[str, Meta(max_length=4096)]
-IntPositive = Annotated[int, Meta(gt=0)]
-IntNonNegative = Annotated[int, Meta(ge=0)]
+# Some commonly used constraints
+IntID = Annotated[int, Parameter(gt=0, lt=2_147_483_647)]
+StringShort = Annotated[str, Parameter(max_length=256)]
+StringLong = Annotated[str, Parameter(max_length=4096)]
+IntPositive = Annotated[int, Parameter(gt=0)]
+IntNonNegative = Annotated[int, Parameter(ge=0)]
+IntMaxLimit = Annotated[int, Parameter(le=200)]
 
 
 # Abstract
