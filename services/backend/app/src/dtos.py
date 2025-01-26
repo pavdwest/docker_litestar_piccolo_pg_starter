@@ -7,12 +7,12 @@ from msgspec import Struct, structs
 
 
 # Some commonly used constraints
-IntID = Annotated[int, Parameter(gt=0, lt=2_147_483_647)]
+IntID = Annotated[int, Parameter(ge=1)]
 StringShort = Annotated[str, Parameter(max_length=256)]
 StringLong = Annotated[str, Parameter(max_length=4096)]
-IntPositive = Annotated[int, Parameter(gt=0)]
+IntPositive = Annotated[int, Parameter(ge=1)]
 IntNonNegative = Annotated[int, Parameter(ge=0)]
-IntMaxLimit = Annotated[int, Parameter(le=200)]
+IntMaxLimit = Annotated[int, Parameter(ge=1, le=200)]
 
 
 # Abstract
