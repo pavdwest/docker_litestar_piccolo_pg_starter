@@ -1,4 +1,4 @@
-# Overview
+# Dockerised Litestar Piccolo PostGres Stack
 
 A dockerised starter stack containing the following components:
 
@@ -11,13 +11,13 @@ A dockerised starter stack containing the following components:
 * Generic Crud Controller generator
 
 
-# Pre-Requisites
+## Pre-Requisites
 
 1. [UV Package Manager](https://github.com/astral-sh/uv)
 2. [Docker](https://docs.docker.com/get-started/get-docker/)
 
 
-# Getting Started
+## Getting Started
 
 TODO
 
@@ -59,16 +59,3 @@ TODO
 9. Run tests:
 
     `docker compose exec backend pytest`
-
-# Notes
-
-## Direct Database Access
-
-Azure Data Studio is recommended. Connection details:
-
-* Install the Postgres Plugin
-* Connection type: PostgreSQL
-* Server Name: Whatever you want, e.g. `localhost-db`
-* Authentication Type: `password`
-* User Name: As per `.env`
-* Password: As per `.env`
