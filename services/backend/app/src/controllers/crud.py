@@ -63,6 +63,7 @@ def generate_crud_controller(
             status_codes.HTTP_409_CONFLICT: ResponseSpec(
                 data_container=ConflictResponse,
                 description=f"Cannot create a {Model.humanise()} because one with the same primary key already exists.",
+                examples=ConflictResponse.examples,
             )
         },
     )

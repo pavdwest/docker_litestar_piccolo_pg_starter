@@ -5,6 +5,6 @@ from src.manifest import ClassManifest
 CONTROLLERS = ClassManifest[AppController](
     [
         "src.modules.home.controllers.HomeController",
-        "src.modules.note.controllers.NoteController",
+        "src.modules.product.controllers.ProductController",
     ]
 )

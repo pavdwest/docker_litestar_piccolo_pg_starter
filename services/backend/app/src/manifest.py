@@ -31,7 +31,7 @@ class ClassManifest(Generic[T]):
         Add a class path to the manifest.
 
         Args:
-            class_path (str): The string path to the class, e.g., "src.modules.note.models.Note".
+            class_path (str): The string path to the class, e.g., "src.modules.product.models.Product".
         """
         if class_path not in self._class_paths:
             self._class_paths.append(class_path)

@@ -4,6 +4,6 @@ from src.manifest import ClassManifest
 
 MODELS = ClassManifest[AppModel](
     [
-        "src.modules.note.models.Note",
+        "src.modules.product.models.Product",
     ]
 )

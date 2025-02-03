@@ -1,6 +1,6 @@
 FROM python:3.12-slim-bookworm
 
-# Assure UTF-8 encoding is used.
+# Ensure UTF-8 encoding is used.
 ENV LC_CTYPE=C.utf8
 
 # Location of the virtual environment

@@ -15,3 +15,12 @@ from msgspec import Struct
 class ConflictResponse(Struct):
     status_code: int = status_codes.HTTP_409_CONFLICT
     detail: str = "Duplicate key error on key (id)."
+    extra: dict = {}
+
+    examples = [
+        {
+            "status_code": 409,
+            "detail": "Duplicate key error on key (id).",
+            "extra": {}
+        }
+    ]

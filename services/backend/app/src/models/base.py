@@ -313,16 +313,16 @@ class AppModel(
     ) -> AppBulkActionResultDTO:
         """Generate an Update From Statement, e.g.
 
-        UPDATE note AS t
+        UPDATE product AS t
         SET
             title = COALESCE(v.title, t.title),
-            body = COALESCE(v.description, t.description),
+            description = COALESCE(v.description, t.description),
         FROM (
             VALUES
                 (1, 'New Title 1', NULL),
                 (2, NULL, 'New Description 2'),
                 (3, 'New Title 3', 'New Description 3')
-        ) AS v(id, title, body)
+        ) AS v(id, title, description)
         WHERE t.id = v.id
         RETURNING t.id;
         """

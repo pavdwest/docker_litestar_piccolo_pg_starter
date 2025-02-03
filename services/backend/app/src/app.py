@@ -24,8 +24,8 @@ def create_app(lifespan: Sequence) -> Litestar:
             description="Powered by LiteStar",
             version=f"{AppVersion.BETA}",
             render_plugins=[
-                StoplightRenderPlugin(path="stoplight"),
                 ScalarRenderPlugin(path="scalar"),
+                StoplightRenderPlugin(path="stoplight"),
                 RapidocRenderPlugin(path="rapidoc"),
                 RedocRenderPlugin(path="redoc"),
                 SwaggerRenderPlugin(path="swagger"),
