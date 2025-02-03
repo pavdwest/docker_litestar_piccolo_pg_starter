@@ -17,7 +17,7 @@ async def test_create_one(client: AsyncClient):
         json={
             "title": "test_create_product_title",
             "description": "test_create_product_description",
-            "price": 5,
+            "price": 5.0,
         },
     )
     assert response.status_code == status_codes.HTTP_201_CREATED
@@ -25,21 +25,21 @@ async def test_create_one(client: AsyncClient):
     assert isinstance(item["id"], int)
     assert item["title"] == "test_create_product_title"
     assert item["description"] == "test_create_product_description"
-    assert item["price"] == 5
+    assert item["price"] == 5.0
     assert datetime.fromisoformat(item["created_at"])
     assert datetime.fromisoformat(item["updated_at"])
 
     db_item = await Product.read_one(item["id"])
     assert db_item.title == "test_create_product_title"
     assert db_item.description == "test_create_product_description"
-    assert db_item.price == 5
+    assert db_item.price == 5.0
 
 
 async def test_create_one_raises_error_for_duplicate(client: AsyncClient):
     data = {
         "title": "test_create_one_raises_error_for_duplicate_title",
         "description": "test_create_one_raises_error_for_duplicate_description",
-        "price": 5,
+        "price": 5.0,
     }
 
     item = Product(**data)
@@ -61,7 +61,7 @@ async def test_read_one(client: AsyncClient):
     item = Product(
         title="test_read_product_title",
         description="test_read_product_description",
-        price=5,
+        price=5.0,
     )
     await item.save()
     await item.refresh()
@@ -72,7 +72,7 @@ async def test_read_one(client: AsyncClient):
     assert isinstance(item["id"], int)
     assert item["title"] == "test_read_product_title"
     assert item["description"] == "test_read_product_description"
-    assert item["price"] == 5
+    assert item["price"] == 5.0
     assert datetime.fromisoformat(item["created_at"])
     assert datetime.fromisoformat(item["updated_at"])
 
@@ -97,7 +97,7 @@ async def test_update_one(client: AsyncClient):
     item = Product(
         title="test_update_product_title",
         description="test_update_product_description",
-        price=5,
+        price=5.0,
     )
     await item.save()
     await item.refresh()
@@ -107,7 +107,7 @@ async def test_update_one(client: AsyncClient):
         json={
             "title": "test_update_product_title_updated",
             "description": "test_update_product_description_updated",
-            "price": 4,
+            "price": 4.0,
         },
     )
     assert response.status_code == status_codes.HTTP_200_OK
@@ -115,14 +115,14 @@ async def test_update_one(client: AsyncClient):
     assert isinstance(item["id"], int)
     assert item["title"] == "test_update_product_title_updated"
     assert item["description"] == "test_update_product_description_updated"
-    assert item["price"] == 4
+    assert item["price"] == 4.0
     assert datetime.fromisoformat(item["created_at"])
     assert datetime.fromisoformat(item["updated_at"])
 
     db_item = await Product.read_one(item["id"])
     assert db_item.title == "test_update_product_title_updated"
     assert db_item.description == "test_update_product_description_updated"
-    assert db_item.price == 4
+    assert db_item.price == 4.0
 
 
 async def test_update_one_raises_error_if_not_exists(client: AsyncClient):
@@ -136,7 +136,7 @@ async def test_update_one_raises_error_if_not_exists(client: AsyncClient):
         json={
             "title": "test_update_product_title_updated",
             "description": "test_update_product_description_updated",
-            "price": 4,
+            "price": 4.0,
         },
     )
     assert response.status_code == status_codes.HTTP_404_NOT_FOUND
@@ -150,7 +150,7 @@ async def test_update_one_allows_partial(client: AsyncClient):
     item = Product(
         title="test_update_one_allows_partial_title",
         description="test_update_one_allows_partial_description",
-        price=5,
+        price=5.0,
     )
     await item.save()
     await item.refresh()
@@ -159,7 +159,7 @@ async def test_update_one_allows_partial(client: AsyncClient):
         f"{endpoint}/{item.id}",
         json={
             "description": "test_update_one_allows_partial_description_updated",
-            "price": 4,
+            "price": 4.0,
         },
     )
     assert response.status_code == status_codes.HTTP_200_OK
@@ -167,14 +167,14 @@ async def test_update_one_allows_partial(client: AsyncClient):
     assert isinstance(item["id"], int)
     assert item["title"] == "test_update_one_allows_partial_title"
     assert item["description"] == "test_update_one_allows_partial_description_updated"
-    assert item["price"] == 4
+    assert item["price"] == 4.0
     assert datetime.fromisoformat(item["created_at"])
     assert datetime.fromisoformat(item["updated_at"])
 
     db_item = await Product.read_one(item["id"])
     assert db_item.title == "test_update_one_allows_partial_title"
     assert db_item.description == "test_update_one_allows_partial_description_updated"
-    assert db_item.price == 4
+    assert db_item.price == 4.0
 
 
 async def test_upsert_one_create_new(client: AsyncClient):
@@ -182,7 +182,7 @@ async def test_upsert_one_create_new(client: AsyncClient):
     assert not await Product.exists().where(
         Product.title == "test_upsert_one_create_new_title",
         Product.description == "test_upsert_one_create_new_description",
-        Product.price == 5,
+        Product.price == 5.0,
     )
 
     response = await client.put(
@@ -190,7 +190,7 @@ async def test_upsert_one_create_new(client: AsyncClient):
         json={
             "title": "test_upsert_one_create_new_title",
             "description": "test_upsert_one_create_new_description",
-            "price": 5,
+            "price": 5.0,
         },
     )
     assert response.status_code == status_codes.HTTP_201_CREATED
@@ -198,21 +198,21 @@ async def test_upsert_one_create_new(client: AsyncClient):
     assert isinstance(item["id"], int)
     assert item["title"] == "test_upsert_one_create_new_title"
     assert item["description"] == "test_upsert_one_create_new_description"
-    assert item["price"] == 5
+    assert item["price"] == 5.0
     assert datetime.fromisoformat(item["created_at"])
     assert datetime.fromisoformat(item["updated_at"])
 
     db_item = await Product.read_one(item["id"])
     assert db_item.title == "test_upsert_one_create_new_title"
     assert db_item.description == "test_upsert_one_create_new_description"
-    assert db_item.price == 5
+    assert db_item.price == 5.0
 
 
 async def test_upsert_one_update(client: AsyncClient):
     item = Product(
         title="test_upsert_one_update_title",
         description="test_upsert_one_update_description_old",
-        price=5,
+        price=5.0,
     )
     await item.save()
     await item.refresh()
@@ -222,7 +222,7 @@ async def test_upsert_one_update(client: AsyncClient):
         json={
             "title": "test_upsert_one_update_title",
             "description": "test_upsert_one_update_description_new",
-            "price": 4,
+            "price": 4.0,
         },
     )
     assert response.status_code == status_codes.HTTP_201_CREATED
@@ -230,21 +230,21 @@ async def test_upsert_one_update(client: AsyncClient):
     assert isinstance(item["id"], int)
     assert item["title"] == "test_upsert_one_update_title"
     assert item["description"] == "test_upsert_one_update_description_new"
-    assert item["price"] == 4
+    assert item["price"] == 4.0
     assert datetime.fromisoformat(item["created_at"])
     assert datetime.fromisoformat(item["updated_at"])
 
     db_item = await Product.read_one(item["id"])
     assert db_item.title == "test_upsert_one_update_title"
     assert db_item.description == "test_upsert_one_update_description_new"
-    assert db_item.price == 4
+    assert db_item.price == 4.0
 
 
 async def test_delete_one(client: AsyncClient):
     item = Product(
         title="test_delete_product_title",
         description="test_delete_product_description",
-        price=5,
+        price=5.0,
     )
     await item.save()
     await item.refresh()
@@ -410,7 +410,7 @@ async def test_update_many(client: AsyncClient):
         "id": db_item2.id,
         # "title": "test_update_many_product_title_2", # Omit required field to test partial update
         "description": "test_update_many_product_description_2_updated",
-        "price": 4,
+        "price": 4.0,
     }
 
     response = await client.patch(
