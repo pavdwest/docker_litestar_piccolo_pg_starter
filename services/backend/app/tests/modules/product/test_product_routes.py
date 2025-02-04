@@ -177,6 +177,38 @@ async def test_update_one_allows_partial(client: AsyncClient):
     assert db_item.price == 4.0
 
 
+# async def test_update_one_applies_null(client: AsyncClient):
+#     item = Product(
+#         title="test_update_one_applies_null_title",
+#         description="test_update_one_applies_null_description",
+#         price=5.0,
+#     )
+#     await item.save()
+#     await item.refresh()
+
+#     response = await client.patch(
+#         f"{endpoint}/{item.id}",
+#         json={
+#             "title": None,
+#             "description": None,
+#             "price": None,
+#         },
+#     )
+#     assert response.status_code == status_codes.HTTP_200_OK
+#     item = response.json()
+#     assert isinstance(item["id"], int)
+#     assert item["title"] is None
+#     assert item["description"] is None
+#     assert item["price"] is None
+#     assert datetime.fromisoformat(item["created_at"])
+#     assert datetime.fromisoformat(item["updated_at"])
+
+#     db_item = await Product.read_one(item["id"])
+#     assert db_item.title is None
+#     assert db_item.description is None
+#     assert db_item.price is None
+
+
 async def test_upsert_one_create_new(client: AsyncClient):
     # Verify that the item does not exist
     assert not await Product.exists().where(

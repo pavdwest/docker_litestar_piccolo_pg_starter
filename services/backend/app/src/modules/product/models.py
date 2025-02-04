@@ -2,6 +2,7 @@ from piccolo.columns import Varchar, Integer
 
 # from piccolo.constraint import UniqueConstraint
 from src.models.base import generate_model
+from src.models.column_types import StringShortPk, StringLong
 from src.modules.product.dtos import ProductCreate, ProductRead, ProductUpdate, ProductUpdateWithId
 
 
@@ -14,6 +15,6 @@ ProductBase = generate_model(
 )
 
 class Product(ProductBase):
-    title = Varchar(required=True, unique=True)
-    description = Varchar(required=True)
+    title = StringShortPk()
+    description = StringLong()
     price = Integer(required=True)

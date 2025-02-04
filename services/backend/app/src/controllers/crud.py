@@ -16,7 +16,6 @@ from src.dtos import (
     AppBulkActionResultDTO,
     AppReadAllPaginationDetailsDTO,
     IntID,
-    IntPositive,
     IntNonNegative,
     IntMaxLimit,
 )

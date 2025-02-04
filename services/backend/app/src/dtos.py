@@ -5,14 +5,17 @@ from functools import lru_cache
 from litestar.params import Parameter
 from msgspec import Struct, structs
 
+from src.models.constants import STRING_SHORT_LENGTH, STRING_LONG_LENGTH
+
 
 # Some commonly used constraints
-IntID = Annotated[int, Parameter(ge=1)]
-StringShort = Annotated[str, Parameter(max_length=256)]
-StringLong = Annotated[str, Parameter(max_length=4096)]
+IntID = Annotated[int, Parameter(ge=1, le=2**63 - 1)]
+StringShort = Annotated[str, Parameter(min_length=1, max_length=STRING_SHORT_LENGTH)]
+StringLong = Annotated[str, Parameter(min_length=1, max_length=STRING_LONG_LENGTH)]
 IntPositive = Annotated[int, Parameter(ge=1)]
 IntNonNegative = Annotated[int, Parameter(ge=0)]
 IntMaxLimit = Annotated[int, Parameter(ge=1, le=200)]
+DatetimeMin = Annotated[datetime, Parameter(ge=datetime(1970, 1, 1))]
 
 
 # Abstract
@@ -29,9 +32,9 @@ class AppDTO(Struct):
 
 
 class AppReadDTO(AppDTO):
-    id: IntPositive
-    created_at: datetime
-    updated_at: datetime
+    id: IntID
+    created_at: DatetimeMin
+    updated_at: DatetimeMin
     is_active: bool
 
 
@@ -44,7 +47,7 @@ class AppUpdateDTO(AppDTO):
 
 
 class AppUpdateWithIdDTO(AppDTO):
-    id: IntPositive
+    id: IntID
     is_active: bool = True
 
     @classmethod
@@ -64,7 +67,7 @@ class AppDeleteAllDTO(AppDTO):
 
 
 class AppDeleteResponseDTO(AppDTO):
-    id: IntPositive
+    id: IntID
 
 
 class AppDeleteAllResponseDTO(AppDTO):
@@ -72,4 +75,4 @@ class AppDeleteAllResponseDTO(AppDTO):
 
 
 class AppBulkActionResultDTO(AppDTO):
-    ids: list[IntPositive]
+    ids: list[IntID]
