@@ -19,7 +19,7 @@ from src.dtos import (
     IntNonNegative,
     IntMaxLimit,
 )
-from src.response_specs import ConflictResponse
+from src.responses import ConflictResponse
 
 
 class CrudController(AppController): ...
