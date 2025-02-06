@@ -55,6 +55,7 @@ async def test_create_one_raises_error_for_duplicate(client: AsyncClient):
         "status_code": 409,
         "detail": 'duplicate key value violates unique constraint "product_title_key"\nDETAIL:  Key (title)=(test_create_one_raises_error_for_duplicate_title) already exists.',
     }
+    assert 1 == 2
 
 
 async def test_read_one(client: AsyncClient):
