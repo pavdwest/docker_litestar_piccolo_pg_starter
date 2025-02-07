@@ -14,6 +14,10 @@ def from_id(cls, id: int, ModelClass: 'type[AppModel]'):
 NotFoundException.from_id = from_id
 
 
+class ColumnNotFoundException(NotFoundException):
+    status_code = status_codes.HTTP_500_INTERNAL_SERVER_ERROR
+
+
 class ConflictException(HTTPException, AppException):
     """Exception for conflict errors like uniqueness constraints."""
 

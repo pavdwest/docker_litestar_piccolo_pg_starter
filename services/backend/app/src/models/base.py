@@ -23,7 +23,7 @@ from src.dtos import (
     AppDeleteAllResponseDTO,
 )
 from asyncpg.exceptions import UniqueViolationError
-from src.models.exceptions import NotFoundException, ConflictException
+from .exceptions import NotFoundException, ConflictException, ColumnNotFoundException
 
 
 class OnConflictAction(StrEnum):
@@ -191,11 +191,11 @@ class AppModel(
 
     @classmethod
     @lru_cache
-    def _get_column_by_name(cls, name: str):
+    def _get_column_by_name(cls, name: str) -> Column | None:
         for c in cls._meta.columns:
             if c._meta.name == name:
                 return c
-        return None
+        raise ColumnNotFoundException(f"Column {name} not found in {cls}")
 
     @classmethod
     @lru_cache(maxsize=1)
@@ -245,14 +245,17 @@ class AppModel(
         )
 
     @classmethod
-    def _get_batch_idx_end(cls, i: int, batch_size: int, total_items: int) -> int:
-        return min(i + batch_size, total_items)
-
-    @classmethod
     @lru_cache(maxsize=1)
     def _batch_size(cls) -> int:
         factor = 0.75
         return int(math.floor(factor * cls.max_batch_size()))
+
+    # A batch generator
+    @classmethod
+    def batch_generator(cls, items: list[any], batch_size: int = INSERT_BATCHED_DEFAULT_SIZE):
+        for i in range(0, len(items), batch_size):
+            idx_end = min(i + batch_size, len(items))
+            yield items[i:idx_end]
 
     @classmethod
     async def insert_batched(
@@ -260,10 +263,8 @@ class AppModel(
         items: list[Self],
         batch_size: int = INSERT_BATCHED_DEFAULT_SIZE,
     ) -> None:
-        batch_size = min(batch_size, cls._batch_size())
-        for i in range(0, len(items), batch_size):
-            idx_end = cls._get_batch_idx_end(i, batch_size, len(items))
-            await cls.insert(*items[i:idx_end]).run()
+        for batch in cls.batch_generator(items, batch_size):
+            await cls.insert(*batch).run()
 
     # TODO: Fix when composite unique constraint functionality is available
     @classmethod
@@ -326,13 +327,10 @@ class AppModel(
         WHERE t.id = v.id
         RETURNING t.id;
         """
-        batch_size = cls._batch_size()
         updated_ids = []
 
-        # Do in batches
-        for i in range(0, len(dtos), batch_size):
-            idx_end = cls._get_batch_idx_end(i, batch_size, len(dtos))
-            vals = ",\n".join([cls.as_raw_sql_update_value(v) for v in dtos[i:idx_end]])
+        for batch in cls.batch_generator(dtos):
+            vals = ",\n".join([cls.as_raw_sql_update_value(v) for v in batch])
             q = f"""
             UPDATE {cls._meta.tablename} AS t
             SET
@@ -346,27 +344,26 @@ class AppModel(
             """
             res = await cls.raw(q).run()
             updated_ids.extend([r["id"] for r in res])
+
         return AppBulkActionResultDTO(ids=updated_ids)
 
     @classmethod
     async def create_many(
         cls, dtos: list[CreateDTOClassType]
     ) -> AppBulkActionResultDTO:
-        batch_size = cls._batch_size()
         batch_res = []
         batch_number = 1
 
         start = time.monotonic()
         try:
-            for i in range(0, len(dtos), batch_size):
-                idx_end = cls._get_batch_idx_end(i, batch_size, len(dtos))
-                batch_items = dtos[i:idx_end]
-                q = cls.insert(*[cls(**i.dict()) for i in batch_items]).run()
+            for batch in cls.batch_generator(dtos):
+                q = cls.insert(*[cls(**i.dict()) for i in batch]).run()
                 batch_res.append(await q)
                 logger.info(
-                    f"Batch {batch_number} size {len(batch_items)}: items idx={i} to idx={i+len(batch_items)-1} inserted."
+                    f"Batch {batch_number} size {len(batch)}."
                 )
                 batch_number += 1
+
             logger.info(f"Time taken: {time.monotonic() - start} seconds.")
 
             return AppBulkActionResultDTO(
@@ -379,22 +376,19 @@ class AppModel(
     async def upsert_many(
         cls, dtos: list[CreateDTOClassType]
     ) -> AppBulkActionResultDTO:
-        batch_size = cls._batch_size()
         batch_res = []
         batch_number = 1
 
         # TODO: Concat all exceptions into batch
         try:
             start = time.monotonic()
-            for i in range(0, len(dtos), batch_size):
-                idx_end = cls._get_batch_idx_end(i, batch_size, len(dtos))
-                batch_items = dtos[i:idx_end]
+            for batch in cls.batch_generator(dtos):
                 q = cls._add_on_conflict_params(
-                    cls.insert(*[cls(**i.dict()) for i in batch_items])
+                    cls.insert(*[cls(**i.dict()) for i in batch])
                 ).run()
                 batch_res.append(await q)
                 logger.info(
-                    f"Batch {batch_number} size {len(batch_items)}: items idx={i} to idx={i+len(batch_items)-1} inserted."
+                    f"Batch {batch_number} size {len(batch)}."
                 )
                 batch_number += 1
             logger.info(f"Time taken: {time.monotonic() - start} seconds.")
