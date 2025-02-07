@@ -50,7 +50,6 @@ class AppModelBase(Table):
 
 # Insert Query Constants
 PSQL_QUERY_ALLOWED_MAX_ARGS = 32767
-INSERT_BATCHED_DEFAULT_SIZE = 5000
 
 
 class AppModel(
@@ -68,6 +67,9 @@ class AppModel(
         required=True, default=TimestampNow, auto_update=datetime.now
     )
     is_active = Boolean(required=True, default=True)
+
+    # Other params
+    INSERT_BATCH_SIZE_OVERRIDE = None
 
     @classmethod
     @lru_cache(maxsize=1)
@@ -248,22 +250,28 @@ class AppModel(
     @lru_cache(maxsize=1)
     def _batch_size(cls) -> int:
         factor = 0.75
-        return int(math.floor(factor * cls.max_batch_size()))
+        if cls.INSERT_BATCH_SIZE_OVERRIDE is not None and cls.INSERT_BATCH_SIZE_OVERRIDE > 0:
+            return min(cls.INSERT_BATCH_SIZE_OVERRIDE, cls.max_batch_size())
+        else:
+            return int(math.floor(cls.max_batch_size() * factor))
 
     # A batch generator
     @classmethod
-    def batch_generator(cls, items: list[any], batch_size: int = INSERT_BATCHED_DEFAULT_SIZE):
+    def batch_generator(cls, items: list[any]):
+        batch_number = 0
+        batch_size = max(1, cls._batch_size())
         for i in range(0, len(items), batch_size):
+            batch_number += 1
             idx_end = min(i + batch_size, len(items))
+            logger.info(f"Batch {batch_number} size {idx_end - i}. From item {i+1} to item {idx_end}")
             yield items[i:idx_end]
 
     @classmethod
     async def insert_batched(
         cls,
         items: list[Self],
-        batch_size: int = INSERT_BATCHED_DEFAULT_SIZE,
     ) -> None:
-        for batch in cls.batch_generator(items, batch_size):
+        for batch in cls.batch_generator(items):
             await cls.insert(*batch).run()
 
     # TODO: Fix when composite unique constraint functionality is available
@@ -352,18 +360,11 @@ class AppModel(
         cls, dtos: list[CreateDTOClassType]
     ) -> AppBulkActionResultDTO:
         batch_res = []
-        batch_number = 1
-
         start = time.monotonic()
         try:
             for batch in cls.batch_generator(dtos):
                 q = cls.insert(*[cls(**i.dict()) for i in batch]).run()
                 batch_res.append(await q)
-                logger.info(
-                    f"Batch {batch_number} size {len(batch)}."
-                )
-                batch_number += 1
-
             logger.info(f"Time taken: {time.monotonic() - start} seconds.")
 
             return AppBulkActionResultDTO(
@@ -377,8 +378,6 @@ class AppModel(
         cls, dtos: list[CreateDTOClassType]
     ) -> AppBulkActionResultDTO:
         batch_res = []
-        batch_number = 1
-
         # TODO: Concat all exceptions into batch
         try:
             start = time.monotonic()
@@ -387,10 +386,6 @@ class AppModel(
                     cls.insert(*[cls(**i.dict()) for i in batch])
                 ).run()
                 batch_res.append(await q)
-                logger.info(
-                    f"Batch {batch_number} size {len(batch)}."
-                )
-                batch_number += 1
             logger.info(f"Time taken: {time.monotonic() - start} seconds.")
 
             return AppBulkActionResultDTO(
