@@ -1,6 +1,5 @@
-from piccolo.columns import Varchar, Integer
+from piccolo.columns import Integer
 
-# from piccolo.constraint import UniqueConstraint
 from src.models.base import generate_model
 from src.models.column_types import StringShortPk, StringLong
 from src.modules.product.dtos import ProductCreate, ProductRead, ProductUpdate, ProductUpdateWithId
