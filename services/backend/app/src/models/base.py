@@ -61,6 +61,7 @@ class AppModel(
     ],
     AppModelBase,
 ):
+    # Model Fields
     id = BigSerial(required=True, primary_key=True)
     created_at = Timestamp(required=True, default=TimestampNow)
     updated_at = Timestamp(
@@ -68,8 +69,15 @@ class AppModel(
     )
     is_active = Boolean(required=True, default=True)
 
-    # Other params
-    INSERT_BATCH_SIZE_OVERRIDE = None
+    '''
+    All multi update and create actions are batched.
+    By default, the batch size is determined dynamically
+    based on the number of columns and the max number of arguments
+    allowed in a PSQL query. This can be overridden with the
+    insert_batch_size_override attribute. It can only reduce the batch size.
+    The used size is always capped at the dynamic maximum.
+    '''
+    insert_batch_size_override = None
 
     @classmethod
     @lru_cache(maxsize=1)
@@ -250,8 +258,8 @@ class AppModel(
     @lru_cache(maxsize=1)
     def _batch_size(cls) -> int:
         factor = 0.75
-        if cls.INSERT_BATCH_SIZE_OVERRIDE is not None and cls.INSERT_BATCH_SIZE_OVERRIDE > 0:
-            return min(cls.INSERT_BATCH_SIZE_OVERRIDE, cls.max_batch_size())
+        if cls.insert_batch_size_override is not None and cls.insert_batch_size_override > 0:
+            return min(cls.insert_batch_size_override, cls.max_batch_size())
         else:
             return int(math.floor(cls.max_batch_size() * factor))
 
