@@ -2,7 +2,7 @@ from piccolo.columns import Integer
 
 from src.models.base import generate_model
 from src.models.column_types import StringShortPk, StringLong
-from src.modules.product.dtos import ProductCreate, ProductRead, ProductUpdate, ProductUpdateWithId
+from .dtos import ProductCreate, ProductRead, ProductUpdate, ProductUpdateWithId
 
 
 ProductBase = generate_model(

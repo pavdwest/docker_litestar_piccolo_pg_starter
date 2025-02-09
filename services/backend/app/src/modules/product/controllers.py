@@ -1,6 +1,6 @@
 from src.controllers.crud import generate_crud_controller
-from src.modules.product.models import Product
-from src.modules.product.dtos import ProductCreate, ProductRead, ProductUpdate, ProductUpdateWithId
+from models import Product
+from dtos import ProductCreate, ProductRead, ProductUpdate, ProductUpdateWithId
 from src.versions import ApiVersion
 
 
