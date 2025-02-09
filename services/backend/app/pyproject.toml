@@ -21,8 +21,10 @@ dev = [
     "polyfactory>=2.18.1",
 ]
 
-[tool.pytest.ini_options]
+[tool.pytest]
 cache_dir = "./pytest_cache"
+
+[tool.pytest.ini_options]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "session"
 
