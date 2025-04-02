@@ -1,4 +1,5 @@
 from typing import Sequence
+import socket
 
 from litestar import Litestar
 from litestar.openapi import OpenAPIConfig
@@ -11,7 +12,6 @@ from litestar.openapi.plugins import (
 )
 from litestar_granian import GranianPlugin
 
-from src.config import PROJECT_NAME
 from src.versions import AppVersion
 from src.controllers.all import CONTROLLERS
 
@@ -20,15 +20,15 @@ def create_app(lifespan: Sequence) -> Litestar:
     app = Litestar(
         lifespan=lifespan,
         openapi_config=OpenAPIConfig(
-            title=f"{PROJECT_NAME} API v{AppVersion.BETA}",
-            description="Powered by LiteStar",
+            title="Project API",
+            description="Powered by LiteStar: <a href='/schema/openapi.json'>schema.json</a>",
             version=f"{AppVersion.BETA}",
             render_plugins=[
                 RapidocRenderPlugin(path="rapidoc"),
                 ScalarRenderPlugin(path="scalar"),
-                SwaggerRenderPlugin(path="swagger"),
                 StoplightRenderPlugin(path="stoplight"),
                 RedocRenderPlugin(path="redoc"),
+                SwaggerRenderPlugin(path="swagger"),
             ],
         ),
         plugins=[GranianPlugin()],

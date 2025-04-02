@@ -1,21 +1,20 @@
-from datetime import datetime
-from typing import Annotated
+from datetime import datetime, timedelta
+from typing import Annotated, Optional
 from functools import lru_cache
 
 from litestar.params import Parameter
 from msgspec import Struct, structs
 
-from src.models.constants import STRING_SHORT_LENGTH, STRING_LONG_LENGTH
+from src.constants import STRING_SHORT_LENGTH, STRING_LONG_LENGTH
 
 
 # Some commonly used constraints
-IntID = Annotated[int, Parameter(ge=1, le=2**63 - 1)]
-StringShort = Annotated[str, Parameter(min_length=1, max_length=STRING_SHORT_LENGTH)]
-StringLong = Annotated[str, Parameter(min_length=1, max_length=STRING_LONG_LENGTH)]
+IntID = Annotated[int, Parameter(ge=1)]
+StringShort = Annotated[str, Parameter(max_length=STRING_SHORT_LENGTH)]
+StringLong = Annotated[str, Parameter(max_length=STRING_LONG_LENGTH)]
 IntPositive = Annotated[int, Parameter(ge=1)]
 IntNonNegative = Annotated[int, Parameter(ge=0)]
 IntMaxLimit = Annotated[int, Parameter(ge=1, le=200)]
-DatetimeMin = Annotated[datetime, Parameter(ge=datetime(1970, 1, 1))]
 
 
 # Abstract
@@ -32,23 +31,23 @@ class AppDTO(Struct):
 
 
 class AppReadDTO(AppDTO):
-    id: IntID
-    created_at: DatetimeMin
-    updated_at: DatetimeMin
+    id: IntPositive
+    created_at: datetime
+    updated_at: datetime
     is_active: bool
 
 
 class AppCreateDTO(AppDTO):
-    is_active: bool = True
+    is_active: Optional[bool] = True
 
 
 class AppUpdateDTO(AppDTO):
-    is_active: bool = True
+    is_active: Optional[bool] = None
 
 
 class AppUpdateWithIdDTO(AppDTO):
-    id: IntID
-    is_active: bool = True
+    id: IntPositive
+    is_active: Optional[bool] = None
 
     @classmethod
     @lru_cache(maxsize=1)
@@ -67,7 +66,7 @@ class AppDeleteAllDTO(AppDTO):
 
 
 class AppDeleteResponseDTO(AppDTO):
-    id: IntID
+    id: IntPositive
 
 
 class AppDeleteAllResponseDTO(AppDTO):
@@ -75,4 +74,12 @@ class AppDeleteAllResponseDTO(AppDTO):
 
 
 class AppBulkActionResultDTO(AppDTO):
-    ids: list[IntID]
+    ids: list[IntPositive]
+
+
+class AppSearchDTO(AppDTO, kw_only=True):
+    created_at_min: Optional[datetime] = None
+    created_at_max: Optional[datetime] = None
+    updated_at_min: Optional[datetime] = None
+    updated_at_max: Optional[datetime] = None
+    is_active: Optional[bool] = None

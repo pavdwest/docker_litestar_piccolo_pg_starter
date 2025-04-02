@@ -8,6 +8,7 @@ from src.dtos import (
     AppUpdateWithIdDTO,
     StringShort,
     StringLong,
+    AppSearchDTO,
 )
 
 
@@ -36,3 +37,12 @@ class ProductUpdateWithId(AppUpdateWithIdDTO):
     title: Optional[StringShort] = None
     description: Optional[StringLong] = None
     price: Optional[Price] = None
+
+
+class ProductSearchDTO(AppSearchDTO, kw_only=True):
+    id_min: Optional[int] = None
+    id_max: Optional[int] = None
+    title: Optional[StringShort] = None
+    description: Optional[StringLong] = None
+    price_min: Optional[Price] = None
+    price_max: Optional[Price] = None

@@ -1,16 +1,19 @@
 from enum import StrEnum
+import functools
 import math
 import time
 import types
 from typing import Generic, Self, TypeVar
-from datetime import datetime
-from functools import lru_cache
+import datetime
+import operator
+import collections
 
-from piccolo.table import Table
-from piccolo.columns import Timestamp, BigSerial, Boolean, Column
-from piccolo.columns.defaults.timestamp import TimestampNow
+from piccolo.columns import Timestamptz, BigSerial, Boolean, Column
+from piccolo.query import Query
 from piccolo.query.methods.insert import Insert
 from piccolo.query.functions import Max
+from piccolo.table import Table
+from piccolo.columns import Varchar, Text  # For checking string types
 from inflection import humanize, pluralize
 
 from src.logging.service import logger
@@ -19,16 +22,16 @@ from src.dtos import (
     AppReadDTO,
     AppUpdateDTO,
     AppUpdateWithIdDTO,
+    AppSearchDTO,
     AppBulkActionResultDTO,
     AppDeleteAllResponseDTO,
 )
 from asyncpg.exceptions import UniqueViolationError
-from .exceptions import NotFoundException, ConflictException, ColumnNotFoundException
+from src.models.exceptions import NotFoundException, ConflictException
 
 
 class OnConflictAction(StrEnum):
     """Utility class for preventing typos in on conflict actions."""
-
     DO_NOTHING = "DO NOTHING"
     DO_UPDATE = "DO UPDATE"
 
@@ -52,6 +55,11 @@ class AppModelBase(Table):
 PSQL_QUERY_ALLOWED_MAX_ARGS = 32767
 
 
+# Function to return datetime in UTC
+def datetime_now_utc() -> datetime.datetime:
+    return datetime.datetime.now(tz=datetime.timezone.utc)
+
+
 class AppModel(
     Generic[
         CreateDTOClassType,
@@ -63,9 +71,14 @@ class AppModel(
 ):
     # Model Fields
     id = BigSerial(required=True, primary_key=True)
-    created_at = Timestamp(required=True, default=TimestampNow)
-    updated_at = Timestamp(
-        required=True, default=TimestampNow, auto_update=datetime.now
+    created_at = Timestamptz(
+        required=True,
+        default=datetime_now_utc,
+    )
+    updated_at = Timestamptz(
+        required=True,
+        default=datetime_now_utc,
+        auto_update=datetime_now_utc,
     )
     is_active = Boolean(required=True, default=True)
 
@@ -75,18 +88,19 @@ class AppModel(
     based on the number of columns and the max number of arguments
     allowed in a PSQL query. This can be overridden with the
     insert_batch_size_override attribute. It can only reduce the batch size.
-    The used size is always capped at the dynamic maximum.
+    The used size is always capped at the dynamic maximum, otherwise inserts would fail.
+    This is a Piccolo/Python limitation.
     '''
     insert_batch_size_override = None
 
     @classmethod
-    @lru_cache(maxsize=1)
+    @functools.lru_cache(maxsize=1)
     def humanise(cls) -> str:
         """Human-readable class name."""
         return humanize(cls.__name__)
 
     @classmethod
-    @lru_cache(maxsize=1)
+    @functools.lru_cache(maxsize=1)
     def humanise_plural(cls) -> str:
         """Human-readable class name."""
         return pluralize(cls.humanise())
@@ -113,12 +127,28 @@ class AppModel(
         return cls.ReadDTOClass(**item)
 
     @classmethod
+    def attach_offset_and_limit(
+        cls,
+        q: Query,
+        offset: int | None = None,
+        limit: int | None = None
+    ) -> Query:
+        if offset is not None:
+            q = q.offset(offset)
+        if limit is not None:
+            q = q.limit(limit)
+        else:
+            logger.warning(f"Limit not specified for Read All Query: {q}")
+        return q
+
+    @classmethod
     async def read_all(
         cls,
-        offset: int = 0,
-        limit: int = 100,
+        offset: int | None = None,
+        limit: int | None = None
     ) -> list[ReadDTOClassType]:
-        items = await cls.select().offset(offset).limit(limit).run()
+        q = cls.attach_offset_and_limit(cls.select(), offset, limit)
+        items = await q.run()
         return [cls.ReadDTOClass(**item) for item in items]
 
     @classmethod
@@ -134,7 +164,7 @@ class AppModel(
         return await cls.update_one(dto.id, dto)
 
     @classmethod
-    @lru_cache(maxsize=1)
+    @functools.lru_cache(maxsize=1)
     def _excluded_columns(cls):
         return [
             cls.id,
@@ -144,12 +174,12 @@ class AppModel(
         ]
 
     @classmethod
-    @lru_cache(maxsize=1)
+    @functools.lru_cache(maxsize=1)
     def _excluded_column_names(cls):
         return [c._meta.name for c in cls._excluded_columns()]
 
     @classmethod
-    @lru_cache(maxsize=1)
+    @functools.lru_cache(maxsize=1)
     def _primary_key_column_names(cls):
         cols = [
             c._meta.name
@@ -160,7 +190,7 @@ class AppModel(
 
     # TODO: Re-evaluate later when composite unique constraint functionality is available
     @classmethod
-    @lru_cache(maxsize=1)
+    @functools.lru_cache(maxsize=1)
     def _add_on_conflict_params(cls, query: Insert) -> Insert:
         """
         Adds conflict resolution parameters to an Insert query.
@@ -200,15 +230,15 @@ class AppModel(
             )
 
     @classmethod
-    @lru_cache
-    def _get_column_by_name(cls, name: str) -> Column | None:
+    @functools.lru_cache
+    def _get_column_by_name(cls, name: str):
         for c in cls._meta.columns:
             if c._meta.name == name:
                 return c
-        raise ColumnNotFoundException(f"Column {name} not found in {cls}")
+        return None
 
     @classmethod
-    @lru_cache(maxsize=1)
+    @functools.lru_cache(maxsize=1)
     def _on_conflict_update_columns(cls) -> list[Column]:
         """
         Returns a list of columns that should be updated on conflict. It excludes unique columns
@@ -227,7 +257,7 @@ class AppModel(
         ]
 
     @classmethod
-    @lru_cache(maxsize=1)
+    @functools.lru_cache(maxsize=1)
     def _unique_columns(cls) -> list[Column]:
         """
         Retrieve a list of unique columns for the model.
@@ -243,19 +273,19 @@ class AppModel(
         ]
 
     @classmethod
-    @lru_cache(maxsize=1)
+    @functools.lru_cache(maxsize=1)
     def _all_column_names(cls):
         return [c._meta.name for c in cls._meta.columns]
 
     @classmethod
-    @lru_cache(maxsize=1)
+    @functools.lru_cache(maxsize=1)
     def max_batch_size(cls) -> int:
         return int(
             math.floor(PSQL_QUERY_ALLOWED_MAX_ARGS / len(cls._all_column_names()))
         )
 
     @classmethod
-    @lru_cache(maxsize=1)
+    @functools.lru_cache(maxsize=1)
     def _batch_size(cls) -> int:
         factor = 0.75
         if cls.insert_batch_size_override is not None and cls.insert_batch_size_override > 0:
@@ -294,74 +324,60 @@ class AppModel(
         return cls.ReadDTOClass(**item.to_dict())
 
     @classmethod
-    @lru_cache(maxsize=1)
-    def _update_set_clause(cls) -> str:
-        return ",\n".join(
-            [
-                f"{column} = COALESCE(v.{column}, t.{column})"
-                for column in cls.UpdateWithIdDTOClass.__struct_fields__
-            ]
-        )
+    def group_dicts_by_keys(
+        cls,
+        dtos: list[AppUpdateDTO],
+    ) -> list[list[dict]]:
+        """
+        Groups dictionaries in a list based on the unique set of keys they possess.
 
-    @classmethod
-    @lru_cache(maxsize=1)
-    def _update_as_v_clause(cls) -> str:
-        return f"v({", ".join(cls.UpdateWithIdDTOClass.__struct_fields__)})"
+        Args:
+            list_of_dicts: A list containing dictionary objects.
 
-    @classmethod
-    def escape_string(cls, s: str) -> str:
-        if isinstance(s, str):
-            return f"'{s.replace("'", "''")}'"
-        return s
+        Returns:
+            A list of lists, where each inner list contains dictionaries
+            that share the exact same set of keys.
+        """
+        # Use defaultdict to automatically create a new list for a new key set
+        grouped_by_keys = collections.defaultdict(list)
 
-    @classmethod
-    def as_raw_sql_update_value(cls, dto: UpdateWithIdDTOClassType) -> str:
-        return f"({', '.join(
-            [
-                f"{cls.escape_string(v)}"
-                if v is not None else 'NULL'
-                for v in dto.dict_ordered().values()
-            ]
-        )})"
+        for dto in dtos:
+            item_dict = dto.dict_without_unset()
+
+            # Get the keys of the current dictionary
+            keys = item_dict.keys()
+            # Create a hashable representation of the keys (a sorted tuple)
+            # Sorting ensures that the order of keys doesn't matter
+            key_tuple = tuple(sorted(keys))
+            # Append the dictionary to the list associated with this key set
+            grouped_by_keys[key_tuple].append(item_dict)
+
+        # Return the lists of dictionaries (the values of our defaultdict)
+        return list(grouped_by_keys.values())
 
     @classmethod
     async def update_many_with_id(
-        cls, dtos: list[UpdateWithIdDTOClassType]
+        cls,
+        dtos: list[UpdateWithIdDTOClassType],
     ) -> AppBulkActionResultDTO:
-        """Generate an Update From Statement, e.g.
-
-        UPDATE product AS t
-        SET
-            title = COALESCE(v.title, t.title),
-            description = COALESCE(v.description, t.description),
-        FROM (
-            VALUES
-                (1, 'New Title 1', NULL),
-                (2, NULL, 'New Description 2'),
-                (3, 'New Title 3', 'New Description 3')
-        ) AS v(id, title, description)
-        WHERE t.id = v.id
-        RETURNING t.id;
-        """
-        updated_ids = []
-
-        for batch in cls.batch_generator(dtos):
-            vals = ",\n".join([cls.as_raw_sql_update_value(v) for v in batch])
-            q = f"""
-            UPDATE {cls._meta.tablename} AS t
-            SET
-                {cls._update_set_clause()}
-            FROM (
-                VALUES
-                    {vals}
-            ) AS {cls._update_as_v_clause()}
-            WHERE t.id = v.id
-            RETURNING t.id;
-            """
-            res = await cls.raw(q).run()
-            updated_ids.extend([r["id"] for r in res])
-
-        return AppBulkActionResultDTO(ids=updated_ids)
+        grouped_items = cls.group_dicts_by_keys(dtos)
+        ids = []
+        for i, group in enumerate(grouped_items):
+            logger.info(f"Group {i+1} size {len(group)}")
+            batched_group = cls.batch_generator(group)
+            for batch in batched_group:
+                items = [cls(**item) for item in batch]
+                cols_to_update = [getattr(cls, c) for c in batch[0].keys() if c != "id" and batch[0][c] is not None]
+                q = cls.insert(
+                    *items
+                ).on_conflict(
+                    action=OnConflictAction.DO_UPDATE,
+                    values=cols_to_update + [cls.updated_at],
+                    target=(cls.id)
+                )
+                res = await q.run()
+                ids.extend([item["id"] for item in res])
+        return AppBulkActionResultDTO(ids=ids)
 
     @classmethod
     async def create_many(
@@ -404,8 +420,7 @@ class AppModel(
 
     @classmethod
     async def delete_one(cls, id: int) -> None:
-        if await cls.read_one(id) is not None:
-            await cls.delete().where(cls.id == id).run()
+        await cls.delete().where(cls.id == id).run()
 
     @classmethod
     async def delete_all(cls, force: bool = False) -> AppDeleteAllResponseDTO:
@@ -413,6 +428,30 @@ class AppModel(
         res = await cls.delete(force).run()
         logger.info(f"Deleted {count} items.")
         return AppDeleteAllResponseDTO(count=count)
+
+    @classmethod
+    async def search(
+        cls,
+        dto: AppSearchDTO,
+        join_operator: operator,
+        offset: int | None = None,
+        limit: int | None = None,
+    ) -> list[ReadDTOClassType]:
+        dto_dict = dto.dict_without_unset()
+        clauses = []
+        for key, value in dto_dict.items():
+            if key.endswith("_min"):
+                key = key.removesuffix("_min")
+                clauses.append((getattr(cls, key) >= value))
+            elif key.endswith("_max"):
+                key = key.removesuffix("_max")
+                clauses.append((getattr(cls, key) <= value))
+            elif issubclass(getattr(cls, key).__class__, (Varchar, Text)):
+                clauses.append((getattr(cls, key).ilike(f"%{value}%")))
+            else:
+                clauses.append((getattr(cls, key) == value))
+        q = cls.select().where(functools.reduce(join_operator, clauses))
+        return await cls.attach_offset_and_limit(q, offset, limit).run()
 
 
 def generate_model(

@@ -5,6 +5,8 @@ from litestar import status_codes
 from litestar.exceptions import HTTPException
 from msgspec import Struct
 from litestar.openapi import ResponseSpec
+from enum import StrEnum
+import operator
 
 from src.models.base import AppModel
 from src.controllers.base import AppController
@@ -13,13 +15,26 @@ from src.dtos import (
     AppReadDTO,
     AppUpdateDTO,
     AppUpdateWithIdDTO,
+    AppSearchDTO,
     AppBulkActionResultDTO,
     AppReadAllPaginationDetailsDTO,
     IntID,
+    IntPositive,
     IntNonNegative,
     IntMaxLimit,
 )
-from src.responses import ConflictResponse
+from src.response_specs import ConflictResponse
+
+
+class JoinOperator(StrEnum):
+    AND: str = "and"
+    OR: str = "or"
+
+    def operator_mapping(self):
+        if self == JoinOperator.AND:
+            return operator.and_
+        elif self == JoinOperator.OR:
+            return operator.or_
 
 
 class CrudController(AppController): ...
@@ -31,6 +46,7 @@ def generate_crud_controller(
     ReadDTO: type[AppReadDTO],
     UpdateDTO: type[AppUpdateDTO],
     UpdateWithIdDTO: type[AppUpdateWithIdDTO],
+    SearchDTO: type[AppSearchDTO],
     api_version_prefix: str,
     exclude_from_auth: bool = False,
     read_all_limit_default: int = 100,
@@ -62,7 +78,6 @@ def generate_crud_controller(
             status_codes.HTTP_409_CONFLICT: ResponseSpec(
                 data_container=ConflictResponse,
                 description=f"Cannot create a {Model.humanise()} because one with the same primary key already exists.",
-                examples=ConflictResponse.examples,
             )
         },
     )
@@ -246,5 +261,27 @@ def generate_crud_controller(
     ) -> None:
         await Model.delete_all(force=True)
     setattr(controller_class, "delete_all", delete_all)
+
+
+    @post(
+        "/search",
+        description=f"Search for {pluralize(Model.humanise())}.",
+        exclude_from_auth=exclude_from_auth,
+        status_code=status_codes.HTTP_200_OK,
+    )
+    async def search(
+        self,
+        data: SearchDTO,  # type: ignore
+        join_operator: JoinOperator = JoinOperator.AND,
+        offset: IntNonNegative = 0,
+        limit: IntMaxLimit = read_all_limit_default,
+    ) -> list[ReadDTO]: # type: ignore
+        return await Model.search(
+            data,
+            join_operator.operator_mapping(),
+            offset,
+            read_all_limit_default
+        )
+    setattr(controller_class, "search", search)
 
     return controller_class

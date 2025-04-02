@@ -1,7 +1,7 @@
-from src.versions import ApiVersion
 from src.controllers.crud import generate_crud_controller
 from .models import Product
-from .dtos import ProductCreate, ProductRead, ProductUpdate, ProductUpdateWithId
+from .dtos import ProductCreate, ProductRead, ProductUpdate, ProductUpdateWithId, ProductSearchDTO
+from src.versions import ApiVersion
 
 
 ProductController = generate_crud_controller(
@@ -10,6 +10,7 @@ ProductController = generate_crud_controller(
     ReadDTO=ProductRead,
     UpdateDTO=ProductUpdate,
     UpdateWithIdDTO=ProductUpdateWithId,
+    SearchDTO=ProductSearchDTO,
     api_version_prefix=ApiVersion.V1,
     exclude_from_auth=True,
 )

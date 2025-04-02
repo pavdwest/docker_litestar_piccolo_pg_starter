@@ -25,37 +25,30 @@ TODO
 
     ```git clone git@github.com:pavdwest/docker_litestar_piccolo_pg.git```
 
-2. Enter app directory:
+2. Create .env file and populate with your own secrets:
+
+    ```cp docker_litestar_piccolo_pg/.env.example docker_litestar_piccolo_pg/.env```
+
+3. Enter app directory:
 
     ```cd docker_litestar_piccolo_pg/services/backend/app```
 
-3. Create & activate virtual environment:
+4. Create & activate virtual environment (only required for local development):
 
-    ```uv venv .venv && source .venv/bin/activate```
+    ```uv venv .venv && source .venv/bin/activate && uv sync```
 
-4. Install dependencies for local development/intellisense:
-
-    ```uv sync```
-
-5. Add .env file and populate with your secrets:
-
-    ```cd ../../..```
-
-    ```cp ./.env.example ./.env```
-
-
-6. Run stack (we attach only to the backend to ignore other containers' log spam):
+5. Run stack (we attach only to the backend to ignore other containers' log spam):
 
     ```docker compose up --build --attach backend```
 
-7. Everything's running:
+6. Everything's running:
 
     [http://127.0.0.1:8000/schema](http://127.0.0.1:8000/schema)
 
-8. Run migrations with Piccolo migrations:
+7. Run migrations with Piccolo migrations:
 
     TODO
 
-9. Run tests:
+8. Run tests:
 
     `docker compose exec backend pytest`
