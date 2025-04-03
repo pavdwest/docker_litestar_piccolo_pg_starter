@@ -438,6 +438,8 @@ class AppModel(
         limit: int | None = None,
     ) -> list[ReadDTOClassType]:
         dto_dict = dto.dict_without_unset()
+        if not dto_dict:
+            return await cls.read_all(offset, limit)
         clauses = []
         for key, value in dto_dict.items():
             if key.endswith("_min"):

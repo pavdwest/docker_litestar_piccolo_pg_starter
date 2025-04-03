@@ -571,3 +571,348 @@ async def test_delete_all(client: AsyncClient):
     response = await client.delete(endpoint)
     assert response.status_code == status_codes.HTTP_204_NO_CONTENT
     assert await Product.count() == 0
+
+
+async def test_search_no_params_returns_all(client: AsyncClient):
+    """
+    Test that searching with no parameters returns all existing products.
+    """
+    await Product.delete_all(force=True)
+    product1 = Product(title="All_Product_1", description="Desc 1", price=10.0)
+    await product1.save()
+    product2 = Product(title="All_Product_2", description="Desc 2", price=20.0)
+    await product2.save()
+
+    response = await client.post(
+        f"{endpoint}/search",
+        json={}, # Empty payload
+    )
+
+    assert response.status_code == status_codes.HTTP_200_OK
+    items = response.json()
+    assert len(items) == 2
+    # Check if both items are returned (order might not be guaranteed)
+    returned_titles = {item["title"] for item in items}
+    assert returned_titles == {"All_Product_1", "All_Product_2"}
+
+async def test_search_by_title_partial(client: AsyncClient):
+    """
+    Test searching by a partial title match.
+    """
+    await Product.delete_all(force=True)
+    product1 = Product(title="Laptop Pro X", description="High-end laptop", price=1500.0)
+    await product1.save()
+    product2 = Product(title="Desktop Mini", description="Compact desktop", price=800.0)
+    await product2.save()
+    product3 = Product(title="Wireless Pro Mouse", description="Ergonomic mouse", price=75.0)
+    await product3.save()
+
+    response = await client.post(
+        f"{endpoint}/search",
+        json={"title": "Pro"},
+    )
+
+    assert response.status_code == status_codes.HTTP_200_OK
+    items = response.json()
+    assert len(items) == 2
+    returned_titles = {item["title"] for item in items}
+    assert returned_titles == {"Laptop Pro X", "Wireless Pro Mouse"}
+
+async def test_search_by_title_exact_no_match(client: AsyncClient):
+    """
+    Test searching by a title that doesn't exist.
+    """
+    await Product.delete_all(force=True)
+    product1 = Product(title="Existing Product", description="Desc", price=50.0)
+    await product1.save()
+
+    response = await client.post(
+        f"{endpoint}/search",
+        json={"title": "NonExistent"},
+    )
+
+    assert response.status_code == status_codes.HTTP_200_OK
+    items = response.json()
+    assert len(items) == 0
+
+async def test_search_by_description_partial(client: AsyncClient):
+    """
+    Test searching by a partial description match.
+    """
+    await Product.delete_all(force=True)
+    product1 = Product(title="Product A", description="This has a unique keyword", price=10.0)
+    await product1.save()
+    product2 = Product(title="Product B", description="Another item description", price=20.0)
+    await product2.save()
+    product3 = Product(title="Product C", description="Contains the unique term as well", price=30.0)
+    await product3.save()
+
+    response = await client.post(
+        f"{endpoint}/search",
+        json={"description": "unique"},
+    )
+
+    assert response.status_code == status_codes.HTTP_200_OK
+    items = response.json()
+    assert len(items) == 2
+    returned_titles = {item["title"] for item in items}
+    assert returned_titles == {"Product A", "Product C"}
+
+async def test_search_by_price_min(client: AsyncClient):
+    """
+    Test searching by minimum price.
+    """
+    await Product.delete_all(force=True)
+    product1 = Product(title="Cheap Item", description="Desc 1", price=5.0)
+    await product1.save()
+    product2 = Product(title="Mid Item", description="Desc 2", price=50.0)
+    await product2.save()
+    product3 = Product(title="Expensive Item", description="Desc 3", price=100.0)
+    await product3.save()
+
+    response = await client.post(
+        f"{endpoint}/search",
+        json={"price_min": 40.0},
+    )
+
+    assert response.status_code == status_codes.HTTP_200_OK
+    items = response.json()
+    assert len(items) == 2
+    returned_titles = {item["title"] for item in items}
+    assert returned_titles == {"Mid Item", "Expensive Item"}
+    # Also check prices
+    returned_prices = {item["price"] for item in items}
+    assert returned_prices == {50.0, 100.0}
+
+
+async def test_search_by_price_max(client: AsyncClient):
+    """
+    Test searching by maximum price.
+    """
+    await Product.delete_all(force=True)
+    product1 = Product(title="Cheap Item", description="Desc 1", price=5.0)
+    await product1.save()
+    product2 = Product(title="Mid Item", description="Desc 2", price=50.0)
+    await product2.save()
+    product3 = Product(title="Expensive Item", description="Desc 3", price=100.0)
+    await product3.save()
+
+    response = await client.post(
+        f"{endpoint}/search",
+        json={"price_max": 60.0},
+    )
+
+    assert response.status_code == status_codes.HTTP_200_OK
+    items = response.json()
+    assert len(items) == 2
+    returned_titles = {item["title"] for item in items}
+    assert returned_titles == {"Cheap Item", "Mid Item"}
+    returned_prices = {item["price"] for item in items}
+    assert returned_prices == {5.0, 50.0}
+
+async def test_search_by_price_range(client: AsyncClient):
+    """
+    Test searching by both minimum and maximum price.
+    """
+    await Product.delete_all(force=True)
+    product1 = Product(title="Cheap Item", description="Desc 1", price=5.0)
+    await product1.save()
+    product2 = Product(title="Mid Item 1", description="Desc 2", price=50.0)
+    await product2.save()
+    product3 = Product(title="Mid Item 2", description="Desc 3", price=75.0)
+    await product3.save()
+    product4 = Product(title="Expensive Item", description="Desc 4", price=100.0)
+    await product4.save()
+
+    response = await client.post(
+        f"{endpoint}/search",
+        json={"price_min": 40.0, "price_max": 80.0},
+    )
+
+    assert response.status_code == status_codes.HTTP_200_OK
+    items = response.json()
+    assert len(items) == 2
+    returned_titles = {item["title"] for item in items}
+    assert returned_titles == {"Mid Item 1", "Mid Item 2"}
+    returned_prices = {item["price"] for item in items}
+    assert returned_prices == {50.0, 75.0}
+
+
+async def test_search_by_id_min(client: AsyncClient):
+    """
+    Test searching by minimum ID.
+    """
+    await Product.delete_all(force=True)
+    product1 = Product(title="Item 1", description="Desc 1", price=10.0)
+    await product1.save()
+    await product1.refresh() # Ensure ID is loaded
+    product2 = Product(title="Item 2", description="Desc 2", price=20.0)
+    await product2.save()
+    await product2.refresh() # Ensure ID is loaded
+    product3 = Product(title="Item 3", description="Desc 3", price=30.0)
+    await product3.save()
+    await product3.refresh() # Ensure ID is loaded
+
+    # Assume IDs are sequential and product2 has id > product1.id
+    search_id_min = product2.id
+
+    response = await client.post(
+        f"{endpoint}/search",
+        json={"id_min": search_id_min},
+    )
+
+    assert response.status_code == status_codes.HTTP_200_OK
+    items = response.json()
+    assert len(items) == 2 # Should match product2 and product3
+    returned_ids = {item["id"] for item in items}
+    assert returned_ids == {product2.id, product3.id}
+    for item in items:
+        assert item["id"] >= search_id_min
+
+async def test_search_by_id_max(client: AsyncClient):
+    """
+    Test searching by maximum ID.
+    """
+    await Product.delete_all(force=True)
+    product1 = Product(title="Item 1", description="Desc 1", price=10.0)
+    await product1.save()
+    await product1.refresh()
+    product2 = Product(title="Item 2", description="Desc 2", price=20.0)
+    await product2.save()
+    await product2.refresh()
+    product3 = Product(title="Item 3", description="Desc 3", price=30.0)
+    await product3.save()
+    await product3.refresh()
+
+    search_id_max = product2.id
+
+    response = await client.post(
+        f"{endpoint}/search",
+        json={"id_max": search_id_max},
+    )
+
+    assert response.status_code == status_codes.HTTP_200_OK
+    items = response.json()
+    assert len(items) == 2 # Should match product1 and product2
+    returned_ids = {item["id"] for item in items}
+    assert returned_ids == {product1.id, product2.id}
+    for item in items:
+        assert item["id"] <= search_id_max
+
+async def test_search_by_id_range(client: AsyncClient):
+    """
+    Test searching by both minimum and maximum ID.
+    """
+    await Product.delete_all(force=True)
+    product1 = Product(title="Item 1", description="Desc 1", price=10.0)
+    await product1.save()
+    await product1.refresh()
+    product2 = Product(title="Item 2", description="Desc 2", price=20.0)
+    await product2.save()
+    await product2.refresh()
+    product3 = Product(title="Item 3", description="Desc 3", price=30.0)
+    await product3.save()
+    await product3.refresh()
+    product4 = Product(title="Item 4", description="Desc 4", price=40.0)
+    await product4.save()
+    await product4.refresh()
+
+    search_id_min = product2.id
+    search_id_max = product3.id
+
+    response = await client.post(
+        f"{endpoint}/search",
+        json={"id_min": search_id_min, "id_max": search_id_max},
+    )
+
+    assert response.status_code == status_codes.HTTP_200_OK
+    items = response.json()
+    assert len(items) == 2 # Should match product2 and product3
+    returned_ids = {item["id"] for item in items}
+    assert returned_ids == {product2.id, product3.id}
+    for item in items:
+        assert search_id_min <= item["id"] <= search_id_max
+
+async def test_search_combined_title_and_price_min(client: AsyncClient):
+    """
+    Test searching by a combination of title and minimum price.
+    """
+    await Product.delete_all(force=True)
+    product1 = Product(title="Widget Blue", description="A blue widget", price=15.0)
+    await product1.save()
+    product2 = Product(title="Widget Red", description="A red widget", price=25.0)
+    await product2.save()
+    product3 = Product(title="Gadget Blue", description="A blue gadget", price=35.0)
+    await product3.save()
+    product4 = Product(title="Widget Green", description="A green widget", price=5.0)
+    await product4.save()
+
+
+    response = await client.post(
+        f"{endpoint}/search",
+        json={"title": "Widget", "price_min": 20.0},
+    )
+
+    assert response.status_code == status_codes.HTTP_200_OK
+    items = response.json()
+    assert len(items) == 1
+    assert items[0]["title"] == "Widget Red"
+    assert items[0]["price"] == 25.0
+
+async def test_search_combined_all_params_match(client: AsyncClient):
+    """
+    Test searching by a combination of all parameters leading to a specific item.
+    """
+    await Product.delete_all(force=True)
+    product1 = Product(title="Specific Item Alpha", description="Unique description one", price=99.99)
+    await product1.save()
+    await product1.refresh()
+    product2 = Product(title="Specific Item Beta", description="Unique description two", price=149.50)
+    await product2.save()
+    await product2.refresh()
+    product3 = Product(title="Generic Item Gamma", description="Common description three", price=50.0)
+    await product3.save()
+    await product3.refresh()
+
+    # Target product2
+    response = await client.post(
+        f"{endpoint}/search",
+        json={
+            "id_min": product2.id,
+            "id_max": product2.id,
+            "title": "Beta",
+            "description": "two",
+            "price_min": 140.0,
+            "price_max": 150.0,
+            },
+    )
+
+    assert response.status_code == status_codes.HTTP_200_OK
+    items = response.json()
+    assert len(items) == 1
+    assert items[0]["id"] == product2.id
+    assert items[0]["title"] == "Specific Item Beta"
+    assert items[0]["price"] == 149.50
+
+
+async def test_search_combined_params_no_match(client: AsyncClient):
+    """
+    Test searching by a combination of parameters that results in no matches.
+    """
+    await Product.delete_all(force=True)
+    product1 = Product(title="Apple iPhone", description="Latest model", price=999.0)
+    await product1.save()
+    product2 = Product(title="Samsung Galaxy", description="Android flagship", price=899.0)
+    await product2.save()
+
+    response = await client.post(
+        f"{endpoint}/search",
+        json={
+            "title": "Apple",    # Matches product1
+            "price_max": 500.0,  # Excludes product1
+            },
+    )
+
+    assert response.status_code == status_codes.HTTP_200_OK
+    items = response.json()
+    assert len(items) == 0

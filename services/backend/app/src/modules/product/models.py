@@ -1,4 +1,4 @@
-from piccolo.columns import Integer
+from piccolo.columns import DoublePrecision
 
 from src.models.base import generate_model
 from src.models.column_types import StringShortPk, StringLong
@@ -16,4 +16,4 @@ ProductBase = generate_model(
 class Product(ProductBase):
     title = StringShortPk()
     description = StringLong()
-    price = Integer(required=True)
+    price = DoublePrecision(required=True)
