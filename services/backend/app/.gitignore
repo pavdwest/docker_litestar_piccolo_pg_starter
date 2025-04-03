@@ -1,5 +1,6 @@
 # Python-generated files
-__pycache__/
+**/__pycache__/
+**/.pytest_cache/
 *.py[oc]
 build/
 dist/
@@ -8,3 +9,7 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Seeds: Ignore .json but not .py files in "seeds" folders
+**/seeds/**/*.json
+!**/seeds/**/*.py
