@@ -258,10 +258,8 @@ def generate_crud_controller(
     )
     async def delete_all(
         self,
-        request: Request,
     ) -> None:
-        res = await Model.delete_all(force=True)
-        request.headers["X-Deleted-Count"] = str(res)
+        await Model.delete_all(force=True)
         return None
     setattr(controller_class, "delete_all", delete_all)
 
