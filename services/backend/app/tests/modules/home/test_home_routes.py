@@ -8,5 +8,5 @@ async def test_index(client: AsyncClient):
     )
     assert response.status_code == status_codes.HTTP_200_OK
     assert response.json() == {
-        'message': 'Hello boils and ghouls'
+        'message': 'Hello boils and ghouls.'
     }

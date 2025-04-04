@@ -2,6 +2,7 @@ from litestar import get, status_codes, Request
 
 from src.versions import ApiVersion
 from src.controllers.base import AppController
+from src.modules.home.dtos import HomeReadDTO
 
 
 class HomeController(AppController):
@@ -15,7 +16,7 @@ class HomeController(AppController):
         tags=["Home"],
         exclude_from_auth=True,
     )
-    async def index(self, request: Request) -> dict:
+    async def index(self, request: Request) -> HomeReadDTO:
         """
         Home
 
@@ -24,4 +25,4 @@ class HomeController(AppController):
                 'message': 'Hello boils and ghouls'
             }
         """
-        return {"message": "Hello boils and ghouls"}
+        return HomeReadDTO()
