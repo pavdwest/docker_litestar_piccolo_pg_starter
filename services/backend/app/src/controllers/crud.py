@@ -1,6 +1,6 @@
 from asyncpg import UniqueViolationError
 from inflection import pluralize
-from litestar import Request, post, get, patch, put, delete
+from litestar import Response, post, get, patch, put, delete
 from litestar import status_codes
 from litestar.exceptions import HTTPException
 from msgspec import Struct
@@ -233,34 +233,24 @@ def generate_crud_controller(
             )
     setattr(controller_class, "upsert_many", upsert_many)
 
-    # @delete(
-    #     '/',
-    #     description=f"Delete all {Model.humanise_plural()}.\
-    #     The following case-sensitive Confirmation Code must be provided as \
-    #     payload otherwise this request will not be authorised: \
-    #     'DELETE ALL {Model.humanise_plural()}'.",
-    #     status_code=status_codes.HTTP_200_OK,
-    #     exclude_from_auth=exclude_from_auth,
-    # )
-    # async def delete_all(
-    #     self,
-    #     data: AppDeleteAllDTO,
-    # ) -> None:
-    #     await Model.delete_all(force=True)
-    # setattr(controller_class, 'delete_all', delete_all)
-
-    # TODO: Fix this
     @delete(
         "/",
-        description=f"Delete all {Model.humanise_plural()}.",
+        description=f"Delete all {Model.humanise_plural()}. See response header 'X-DELETED-COUNT' for number of items deleted.",
         exclude_from_auth=exclude_from_auth,
         status_code=status_codes.HTTP_204_NO_CONTENT,
+        response_class=Response,
     )
     async def delete_all(
         self,
     ) -> None:
-        await Model.delete_all(force=True)
-        return None
+        res = await Model.delete_all(force=True)
+        return Response(
+            status_code=status_codes.HTTP_204_NO_CONTENT,
+            content=None,
+            headers={
+                'X-DELETED-COUNT': str(res.count)
+            }
+        )
     setattr(controller_class, "delete_all", delete_all)
 
 

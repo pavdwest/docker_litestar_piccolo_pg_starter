@@ -570,6 +570,7 @@ async def test_delete_all(client: AsyncClient):
     # Call delete_all
     response = await client.delete(endpoint)
     assert response.status_code == status_codes.HTTP_204_NO_CONTENT
+    assert response.headers["X-Deleted-Count"] == "2"
     assert await Product.count() == 0
 
 
