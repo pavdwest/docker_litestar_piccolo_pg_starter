@@ -1,6 +1,6 @@
 from asyncpg import UniqueViolationError
 from inflection import pluralize
-from litestar import post, get, patch, put, delete
+from litestar import Request, post, get, patch, put, delete
 from litestar import status_codes
 from litestar.exceptions import HTTPException
 from msgspec import Struct
@@ -258,8 +258,11 @@ def generate_crud_controller(
     )
     async def delete_all(
         self,
+        request: Request,
     ) -> None:
-        await Model.delete_all(force=True)
+        res = await Model.delete_all(force=True)
+        request.headers["X-Deleted-Count"] = str(res)
+        return None
     setattr(controller_class, "delete_all", delete_all)
 
 
