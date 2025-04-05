@@ -1,5 +1,4 @@
-from typing import Sequence
-import socket
+from collections.abc import Sequence
 
 from litestar import Litestar
 from litestar.openapi import OpenAPIConfig

@@ -1,4 +1,4 @@
-from typing import Type, TypeVar, Generic, Dict, List
+from typing import Type, TypeVar, Generic
 import importlib
 from functools import lru_cache
 
@@ -15,15 +15,15 @@ class ClassManifest(Generic[T]):
         _class_paths (List[str]): List to store class paths as strings.
         _class_map (Dict[str, Type[T]]): Dictionary to store class names and class references (lazy-loaded).
     """
-    def __init__(self, class_paths: List[str] = None):
+    def __init__(self, class_paths: list[str] = None):
         """
         Initialize the ClassManifest with an optional list of class paths.
 
         Args:
             class_paths (List[str], optional): A list of string paths to classes.
         """
-        self._class_paths: List[str] = class_paths or []
-        self._class_map: Dict[str, Type[T]] = {}
+        self._class_paths: list[str] = class_paths or []
+        self._class_map: dict[str, Type[T]] = {}
         self._classes_loaded: bool = False
 
     def add(self, class_path: str):
@@ -51,7 +51,7 @@ class ClassManifest(Generic[T]):
                 self._class_map[class_name] = cls
 
     @lru_cache(maxsize=1)
-    def get_map(self) -> Dict[str, Type[T]]:
+    def get_map(self) -> dict[str, Type[T]]:
         """
         Get the dictionary of stored class references. Lazily loads the classes if needed.
 
@@ -61,7 +61,7 @@ class ClassManifest(Generic[T]):
         self._load_classes()
         return self._class_map
 
-    def get_all(self) -> List[Type[T]]:
+    def get_all(self) -> list[Type[T]]:
         """
         Get the list of stored class references. Lazily loads the classes if needed.
 
