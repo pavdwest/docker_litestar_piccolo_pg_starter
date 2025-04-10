@@ -1,4 +1,4 @@
-from typing import Type, TypeVar, Generic
+from typing import TypeVar, Generic
 import importlib
 from functools import lru_cache
 
@@ -13,7 +13,7 @@ class ClassManifest(Generic[T]):
 
     Attributes:
         _class_paths (List[str]): List to store class paths as strings.
-        _class_map (Dict[str, Type[T]]): Dictionary to store class names and class references (lazy-loaded).
+        _class_map (Dict[str, type[T]]): Dictionary to store class names and class references (lazy-loaded).
     """
     def __init__(self, class_paths: list[str] = None):
         """
@@ -23,7 +23,7 @@ class ClassManifest(Generic[T]):
             class_paths (List[str], optional): A list of string paths to classes.
         """
         self._class_paths: list[str] = class_paths or []
-        self._class_map: dict[str, Type[T]] = {}
+        self._class_map: dict[str, type[T]] = {}
         self._classes_loaded: bool = False
 
     def add(self, class_path: str):
@@ -51,27 +51,27 @@ class ClassManifest(Generic[T]):
                 self._class_map[class_name] = cls
 
     @lru_cache(maxsize=1)
-    def get_map(self) -> dict[str, Type[T]]:
+    def get_map(self) -> dict[str, type[T]]:
         """
         Get the dictionary of stored class references. Lazily loads the classes if needed.
 
         Returns:
-            Dict[str, Type[T]]: The dictionary of class names and references.
+            Dict[str, type[T]]: The dictionary of class names and references.
         """
         self._load_classes()
         return self._class_map
 
-    def get_all(self) -> list[Type[T]]:
+    def get_all(self) -> list[type[T]]:
         """
         Get the list of stored class references. Lazily loads the classes if needed.
 
         Returns:
-            List[Type[T]]: The list of class references.
+            List[type[T]]: The list of class references.
         """
         self._load_classes()
         return list(self._class_map.values())
 
-    def get_by_name(self, class_name: str) -> Type[T]:
+    def get_by_name(self, class_name: str) -> type[T]:
         """
         Retrieve a class by its name. Lazily loads the classes if needed.
 
@@ -79,7 +79,7 @@ class ClassManifest(Generic[T]):
             class_name (str): The name of the class to retrieve.
 
         Returns:
-            Type[T]: The class reference matching the given name.
+            type[T]: The class reference matching the given name.
 
         Raises:
             KeyError: If no class with the given name exists in the manifest.
